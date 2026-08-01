@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# Dependencies
+node_modules/
+
+# SQLite databases
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Logs
+logs/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# npm
+npm-debug.log*

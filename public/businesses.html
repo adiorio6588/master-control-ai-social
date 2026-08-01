@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Business Manager | Master Control</title>
+
+    <link rel="stylesheet" href="businesses.css">
+</head>
+
+<body>
+
+    <aside class="sidebar">
+
+        <div class="system-number">06</div>
+
+        <h1>Master Control</h1>
+
+        <nav>
+            <a href="/">Dashboard</a>
+
+            <a
+                href="/businesses.html"
+                class="active"
+            >
+                Businesses
+            </a>
+
+            <a href="/rules.html">
+                Rules Manager
+            </a>
+        </nav>
+
+        <div class="system-status">
+
+            <span class="online-light"></span>
+
+            <div>
+                <strong>System Online</strong>
+                <small>Business control active</small>
+            </div>
+
+        </div>
+
+    </aside>
+
+    <main class="content">
+
+        <header class="page-header">
+
+            <div>
+                <p>MASTER CONTROL // PROFILES</p>
+
+                <h2>Business Manager</h2>
+
+                <span>
+                    Add businesses and control the brand voice
+                    used for automatic replies.
+                </span>
+            </div>
+
+            <button
+                id="new-business-button"
+                class="primary-button"
+                type="button"
+            >
+                + New Business
+            </button>
+
+        </header>
+
+        <section class="summary-panel">
+
+            <article>
+                <span>BUSINESSES LOADED</span>
+                <strong id="business-total">0</strong>
+            </article>
+
+            <article>
+                <span>ACTIVE PROFILE</span>
+                <strong id="active-profile">NONE</strong>
+            </article>
+
+            <article>
+                <span>DATABASE</span>
+                <strong class="online-value">ONLINE</strong>
+            </article>
+
+        </section>
+
+        <section
+            id="message-box"
+            class="message-box hidden"
+        ></section>
+
+        <section class="manager-grid">
+
+            <div class="business-list-panel">
+
+                <div class="panel-header">
+                    <div>
+                        <p>PROFILE DIRECTORY</p>
+                        <h3>Businesses</h3>
+                    </div>
+
+                    <button
+                        id="refresh-businesses"
+                        class="secondary-button"
+                        type="button"
+                    >
+                        Refresh
+                    </button>
+                </div>
+
+                <div
+                    id="business-list"
+                    class="business-list"
+                >
+                    <div class="empty-state">
+                        Loading businesses...
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="editor-panel">
+
+                <div class="panel-header">
+
+                    <div>
+                        <p>PROFILE CONFIGURATION</p>
+
+                        <h3 id="editor-title">
+                            Select a Business
+                        </h3>
+                    </div>
+
+                    <span
+                        id="editor-mode"
+                        class="mode-badge"
+                    >
+                        VIEW
+                    </span>
+
+                </div>
+
+                <form id="business-form">
+
+                    <input
+                        id="business-id"
+                        type="hidden"
+                    >
+
+                    <div class="field">
+                        <label for="business-name">
+                            Business Name
+                        </label>
+
+                        <input
+                            id="business-name"
+                            type="text"
+                            placeholder="Example: Mensajes del Colibrí"
+                            required
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="business-emoji">
+                            Icon or Emoji
+                        </label>
+
+                        <input
+                            id="business-emoji"
+                            type="text"
+                            maxlength="8"
+                            placeholder="🏢"
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="business-prompt">
+                            AI Brand Instructions
+                        </label>
+
+                        <textarea
+                            id="business-prompt"
+                            placeholder="Describe the business, preferred tone, approved topics, and important reply rules..."
+                            required
+                        ></textarea>
+
+                        <small>
+                            These instructions are used whenever no
+                            automatic rule matches the customer comment.
+                        </small>
+                    </div>
+
+                    <div class="form-actions">
+
+                        <button
+                            id="cancel-edit"
+                            class="secondary-button"
+                            type="button"
+                        >
+                            Clear
+                        </button>
+
+                        <button
+                            id="save-business"
+                            class="primary-button"
+                            type="submit"
+                        >
+                            Save Business
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="businesses.js"></script>
+
+</body>
+</html>

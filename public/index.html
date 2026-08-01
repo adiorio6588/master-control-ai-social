@@ -2,58 +2,297 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>Master Control AI</title>
 
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div class="sidebar">
+    <aside class="sidebar">
 
-    <h2>🤖 Master Control</h2>
+        <h2>Master Control</h2>
 
-    <button>Dashboard</button>
-    <button>Comments</button>
-    <button>Businesses</button>
-    <button>Analytics</button>
-    <button>Settings</button>
+        <nav class="sidebar-navigation">
 
-</div>
+            <a
+                href="/"
+                class="sidebar-link active-nav"
+            >
+                <span>Dashboard</span>
+            </a>
 
-<div class="content">
+            <a
+                href="#"
+                class="sidebar-link disabled-link"
+            >
+                <span>Social Inbox</span>
+                <small>Coming Soon</small>
+            </a>
 
-    <h1>AI Social Media Assistant</h1>
+            <a
+                href="/businesses.html"
+                class="sidebar-link"
+            >
+                <span>Businesses</span>
+            </a>
 
-    <div class="card">
+            <a
+                href="/rules.html"
+                class="sidebar-link"
+            >
+                <span>Rules Manager</span>
+            </a>
 
-        <h3>Customer Comment</h3>
+            <a
+                href="#"
+                class="sidebar-link disabled-link"
+            >
+                <span>Analytics</span>
+                <small>Coming Soon</small>
+            </a>
 
-        <textarea
-        id="comment"
-        placeholder="Paste a customer comment here..."
-        ></textarea>
+            <a
+                href="#"
+                class="sidebar-link disabled-link"
+            >
+                <span>Settings</span>
+                <small>Coming Soon</small>
+            </a>
 
-        <button id="generate">
-            Generate AI Reply
-        </button>
+        </nav>
 
-    </div>
+        <div class="sidebar-system-status">
 
-    <div class="card">
+            <span class="online-light"></span>
 
-        <h3>AI Reply</h3>
+            <div>
+                <strong>System Online</strong>
+                <p>Mock AI active</p>
+            </div>
 
-        <textarea
-        id="reply"
-        placeholder="Your AI reply will appear here..."
-        ></textarea>
+        </div>
 
-    </div>
+    </aside>
 
-</div>
+    <main class="content">
 
-<script src="app.js"></script>
+        <header class="command-header">
+
+            <div>
+                <p class="system-label">
+                    MASTER CONTROL // SYSTEM 06
+                </p>
+
+                <h1>Social Reply Command</h1>
+
+                <p class="header-description">
+                    Monitor businesses, generate responses,
+                    and review recent activity from one
+                    control center.
+                </p>
+            </div>
+
+            <div
+                class="robot-emblem"
+                aria-label="Master Control emblem"
+            >
+                <div class="robot-antenna"></div>
+
+                <div class="robot-head">
+
+                    <div class="robot-eyes">
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    <div class="robot-mouth"></div>
+
+                </div>
+            </div>
+
+        </header>
+
+        <section class="system-stats">
+
+            <article class="stat-panel">
+                <span class="stat-label">
+                    SYSTEM STATUS
+                </span>
+
+                <strong class="online-value">
+                    ONLINE
+                </strong>
+
+                <small>
+                    Local server connected
+                </small>
+            </article>
+
+            <article class="stat-panel">
+                <span class="stat-label">
+                    BUSINESSES
+                </span>
+
+                <strong id="business-count">
+                    0
+                </strong>
+
+                <small>
+                    Profiles available
+                </small>
+            </article>
+
+            <article class="stat-panel">
+                <span class="stat-label">
+                    REPLIES LOGGED
+                </span>
+
+                <strong id="reply-count">
+                    0
+                </strong>
+
+                <small>
+                    Saved in SQLite
+                </small>
+            </article>
+
+            <article class="stat-panel">
+                <span class="stat-label">
+                    AI MODE
+                </span>
+
+                <strong>
+                    MOCK
+                </strong>
+
+                <small>
+                    No API charges
+                </small>
+            </article>
+
+        </section>
+
+        <section class="dashboard-grid">
+
+            <div class="generator-column">
+
+                <div class="card">
+
+                    <h3>Business Control</h3>
+
+                    <label for="business">
+                        Active business profile
+                    </label>
+
+                    <select id="business">
+                        <option value="">
+                            Loading businesses...
+                        </option>
+                    </select>
+
+                </div>
+
+                <div class="card">
+
+                    <h3>Incoming Comment</h3>
+
+                    <label for="comment">
+                        Customer message
+                    </label>
+
+                    <textarea
+                        id="comment"
+                        placeholder="Paste a customer comment here..."
+                    ></textarea>
+
+                    <button
+                        id="generate"
+                        type="button"
+                    >
+                        Generate AI Reply
+                    </button>
+
+                </div>
+
+                <div class="card">
+
+                    <div class="reply-card-header">
+
+                        <h3>AI Response</h3>
+
+                        <button
+                            id="copy-reply"
+                            class="control-button"
+                            type="button"
+                        >
+                            Copy
+                        </button>
+
+                    </div>
+
+                    <label for="reply">
+                        Generated response
+                    </label>
+
+                    <textarea
+                        id="reply"
+                        placeholder="Your generated reply will appear here..."
+                    ></textarea>
+
+                    <p
+                        id="reply-status"
+                        class="reply-status"
+                    ></p>
+
+                </div>
+
+            </div>
+
+            <section class="activity-panel">
+
+                <div class="activity-header">
+
+                    <div>
+                        <span class="stat-label">
+                            LIVE ACTIVITY
+                        </span>
+
+                        <h2>Reply History</h2>
+                    </div>
+
+                    <button
+                        id="refresh-history"
+                        class="control-button"
+                        type="button"
+                    >
+                        Refresh
+                    </button>
+
+                </div>
+
+                <div
+                    id="history-list"
+                    class="history-list"
+                >
+                    <div class="history-empty">
+                        Loading activity log...
+                    </div>
+                </div>
+
+            </section>
+
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
 
 </body>
 </html>

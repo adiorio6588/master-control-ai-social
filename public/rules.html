@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Rules Manager | Master Control</title>
+
+    <link rel="stylesheet" href="rules.css">
+</head>
+
+<body>
+
+    <aside class="sidebar">
+
+        <div class="system-number">06</div>
+
+        <h1>Master Control</h1>
+
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/rules.html" class="active">Rules Manager</a>
+        </nav>
+
+        <div class="system-status">
+            <span></span>
+
+            <div>
+                <strong>System Online</strong>
+                <small>Rules engine active</small>
+            </div>
+        </div>
+
+    </aside>
+
+    <main class="content">
+
+        <header class="page-header">
+
+            <div>
+                <p>MASTER CONTROL // AUTOMATION</p>
+                <h2>Rules Manager</h2>
+
+                <span>
+                    Create automatic replies that run before the paid AI service.
+                </span>
+            </div>
+
+            <button id="new-rule-button" class="primary-button">
+                + New Rule
+            </button>
+
+        </header>
+
+        <section class="toolbar">
+
+            <div class="field">
+                <label for="business-filter">
+                    Business
+                </label>
+
+                <select id="business-filter">
+                    <option value="">All businesses</option>
+                </select>
+            </div>
+
+            <div class="toolbar-stat">
+                <span>Rules Loaded</span>
+                <strong id="rule-count">0</strong>
+            </div>
+
+            <div class="toolbar-stat">
+                <span>Enabled</span>
+                <strong id="enabled-count">0</strong>
+            </div>
+
+        </section>
+
+        <section id="message-box" class="message-box hidden"></section>
+
+        <section id="rules-list" class="rules-list">
+
+            <div class="empty-state">
+                Loading automatic reply rules...
+            </div>
+
+        </section>
+
+    </main>
+
+    <div id="rule-modal" class="modal hidden">
+
+        <div class="modal-backdrop" id="modal-backdrop"></div>
+
+        <section class="modal-panel">
+
+            <div class="modal-header">
+
+                <div>
+                    <p>RULE CONFIGURATION</p>
+                    <h2 id="modal-title">Create Rule</h2>
+                </div>
+
+                <button
+                    id="close-modal-button"
+                    class="icon-button"
+                    type="button"
+                >
+                    ×
+                </button>
+
+            </div>
+
+            <form id="rule-form">
+
+                <input id="rule-id" type="hidden">
+
+                <div class="field">
+                    <label for="rule-business">
+                        Business
+                    </label>
+
+                    <select id="rule-business" required>
+                        <option value="">Select a business</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="rule-name">
+                        Rule Name
+                    </label>
+
+                    <input
+                        id="rule-name"
+                        type="text"
+                        placeholder="Example: Delivery"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="rule-keywords">
+                        Keywords
+                    </label>
+
+                    <input
+                        id="rule-keywords"
+                        type="text"
+                        placeholder="deliver, delivery, shipping"
+                        required
+                    >
+
+                    <small>
+                        Separate each keyword or phrase with a comma.
+                    </small>
+                </div>
+
+                <div class="field">
+                    <label for="rule-reply">
+                        Automatic Reply
+                    </label>
+
+                    <textarea
+                        id="rule-reply"
+                        placeholder="Write the reply that should be sent when this rule matches..."
+                        required
+                    ></textarea>
+                </div>
+
+                <label class="checkbox-row">
+
+                    <input
+                        id="rule-enabled"
+                        type="checkbox"
+                        checked
+                    >
+
+                    <span>Rule enabled</span>
+
+                </label>
+
+                <div class="form-actions">
+
+                    <button
+                        id="cancel-button"
+                        class="secondary-button"
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        id="save-rule-button"
+                        class="primary-button"
+                        type="submit"
+                    >
+                        Save Rule
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+    </div>
+
+    <script src="rules.js"></script>
+
+</body>
+</html>

@@ -3,12 +3,17 @@ const router = express.Router();
 
 const database = require("../database/database");
 const { generateReply } = require("../services/openai");
+const {
+    findMatchingRule
+} = require("../services/rulesEngine");
 
 router.post("/reply", async (req, res) => {
+
     try {
+
         const { comment, businessId } = req.body;
 
-        if (!comment || !comment.trim()) {
+        if (!comment) {
             return res.status(400).json({
                 error: "Comment is required."
             });
@@ -20,16 +25,13 @@ router.post("/reply", async (req, res) => {
             });
         }
 
-        const cleanComment = comment.trim();
-        const normalizedComment = cleanComment.toLowerCase();
-
         const business = database
             .prepare(`
-                SELECT id, name, emoji, prompt
+                SELECT *
                 FROM businesses
                 WHERE id = ?
             `)
-            .get(Number(businessId));
+            .get(businessId);
 
         if (!business) {
             return res.status(404).json({
@@ -37,133 +39,62 @@ router.post("/reply", async (req, res) => {
             });
         }
 
-        console.log("SELECTED BUSINESS:", business.name);
-
-        /*
-         * Check enabled rules for the selected business.
-         */
-        const rules = database
-            .prepare(`
-                SELECT id, name, keywords, reply
-                FROM reply_rules
-                WHERE business_id = ?
-                  AND enabled = 1
-                ORDER BY id ASC
-            `)
-            .all(business.id);
-
-        const matchedRule = findMatchingRule(
-            rules,
-            normalizedComment
+        // Check Rules FIRST
+        const rule = findMatchingRule(
+            businessId,
+            comment
         );
 
         let reply;
-        let replySource;
-        let ruleName = null;
+        let source;
 
-        if (matchedRule) {
-            reply = matchedRule.reply;
-            replySource = "rule";
-            ruleName = matchedRule.name;
+        if (rule.matched) {
 
-            console.log("RULE MATCHED:", matchedRule.name);
-        } else {
-            reply = await generateReply(
-                business.prompt,
-                cleanComment
+            console.log(
+                `✅ Rule matched: ${rule.ruleName}`
             );
 
-            replySource = "ai";
+            reply = rule.reply;
+            source = "RULE";
 
-            console.log("NO RULE MATCHED — USING AI SERVICE");
+        } else {
+
+            console.log(
+                "🤖 Using GPT..."
+            );
+
+            reply = await generateReply(
+                business.prompt,
+                comment
+            );
+
+            source = "GPT";
+
         }
-
-        /*
-         * Save the incoming comment and resulting reply.
-         */
-        const saveConversation = database.transaction(() => {
-            const commentResult = database
-                .prepare(`
-                    INSERT INTO comments (
-                        business_id,
-                        platform,
-                        author,
-                        content,
-                        status
-                    )
-                    VALUES (?, ?, ?, ?, ?)
-                `)
-                .run(
-                    business.id,
-                    "manual",
-                    "Customer",
-                    cleanComment,
-                    "replied"
-                );
-
-            const replyResult = database
-                .prepare(`
-                    INSERT INTO replies (
-                        comment_id,
-                        content,
-                        approved,
-                        posted
-                    )
-                    VALUES (?, ?, ?, ?)
-                `)
-                .run(
-                    commentResult.lastInsertRowid,
-                    reply,
-                    0,
-                    0
-                );
-
-            return {
-                commentId: Number(
-                    commentResult.lastInsertRowid
-                ),
-                replyId: Number(
-                    replyResult.lastInsertRowid
-                )
-            };
-        });
-
-        const saved = saveConversation();
 
         res.json({
+
             business: business.name,
+
             reply,
-            source: replySource,
-            ruleName,
-            commentId: saved.commentId,
-            replyId: saved.replyId
+
+            source
+
         });
+
     } catch (error) {
-        console.error("AI route error:", error);
+
+        console.error(error);
 
         res.status(500).json({
-            error: "Unable to generate reply."
+
+            error:
+                "Unable to generate reply."
+
         });
+
     }
+
 });
-
-function findMatchingRule(rules, normalizedComment) {
-    for (const rule of rules) {
-        const keywords = rule.keywords
-            .split(",")
-            .map((keyword) => keyword.trim().toLowerCase())
-            .filter(Boolean);
-
-        const hasMatch = keywords.some((keyword) =>
-            normalizedComment.includes(keyword)
-        );
-
-        if (hasMatch) {
-            return rule;
-        }
-    }
-
-    return null;
-}
 
 module.exports = router;

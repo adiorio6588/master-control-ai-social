@@ -2,27 +2,54 @@ const express = require("express");
 const router = express.Router();
 
 const database = require("../database/database");
+
 const { generateReply } = require("../services/openai");
+
 const {
     findMatchingRule
 } = require("../services/rulesEngine");
+
+const {
+    detectBusiness
+} = require("../services/businessDetector");
 
 router.post("/reply", async (req, res) => {
 
     try {
 
-        const { comment, businessId } = req.body;
+        const { comment } = req.body;
+
+        let { businessId } = req.body;
 
         if (!comment) {
+
             return res.status(400).json({
                 error: "Comment is required."
             });
+
         }
 
+        // Automatically detect the business if none was selected.
         if (!businessId) {
-            return res.status(400).json({
-                error: "Business is required."
-            });
+
+            const detected = detectBusiness(comment);
+
+            if (detected.detected) {
+
+                businessId = detected.businessId;
+
+                console.log(
+                    `🧠 Detected Business: ${detected.emoji} ${detected.businessName}`
+                );
+
+            } else {
+
+                return res.status(400).json({
+                    error: "Unable to determine which business this comment belongs to."
+                });
+
+            }
+
         }
 
         const business = database
@@ -34,12 +61,14 @@ router.post("/reply", async (req, res) => {
             .get(businessId);
 
         if (!business) {
+
             return res.status(404).json({
                 error: "Business not found."
             });
+
         }
 
-        // Check Rules FIRST
+        // Try the Rules Engine first.
         const rule = findMatchingRule(
             businessId,
             comment
@@ -47,20 +76,22 @@ router.post("/reply", async (req, res) => {
 
         let reply;
         let source;
+        let ruleName = null;
 
         if (rule.matched) {
 
             console.log(
-                `✅ Rule matched: ${rule.ruleName}`
+                `✅ Rule Matched: ${rule.ruleName}`
             );
 
             reply = rule.reply;
             source = "RULE";
+            ruleName = rule.ruleName;
 
         } else {
 
             console.log(
-                "🤖 Using GPT..."
+                "🤖 No rule found. Using GPT..."
             );
 
             reply = await generateReply(
@@ -74,11 +105,17 @@ router.post("/reply", async (req, res) => {
 
         res.json({
 
+            businessId,
+
             business: business.name,
 
-            reply,
+            emoji: business.emoji,
 
-            source
+            source,
+
+            rule: ruleName,
+
+            reply
 
         });
 
@@ -88,8 +125,7 @@ router.post("/reply", async (req, res) => {
 
         res.status(500).json({
 
-            error:
-                "Unable to generate reply."
+            error: "Unable to generate reply."
 
         });
 

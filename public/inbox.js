@@ -4,9 +4,6 @@ const commentsPanel =
 const detailsPanel =
     document.querySelector(".details-panel");
 
-const countBadge =
-    document.querySelector(".count-badge");
-
 let comments = [];
 let selectedCommentId = null;
 
@@ -21,8 +18,6 @@ async function loadComments() {
         }
 
         comments = await response.json();
-
-        countBadge.textContent = comments.length;
 
         renderComments();
 
@@ -40,16 +35,19 @@ async function loadComments() {
     } catch (error) {
         console.error("Inbox loading error:", error);
 
-        countBadge.textContent = "ERR";
-
         commentsPanel.innerHTML = `
             <div class="panel-header">
                 <h2>Pending Comments</h2>
-                <span class="count-badge">ERR</span>
+
+                <span class="count-badge">
+                    ERR
+                </span>
             </div>
 
             <div class="empty-state">
-                <div class="empty-icon">⚠️</div>
+                <div class="empty-icon">
+                    ⚠️
+                </div>
 
                 <h3>Unable to Load Inbox</h3>
 
@@ -65,11 +63,16 @@ function renderLoadingState() {
     commentsPanel.innerHTML = `
         <div class="panel-header">
             <h2>Pending Comments</h2>
-            <span class="count-badge">...</span>
+
+            <span class="count-badge">
+                ...
+            </span>
         </div>
 
         <div class="empty-state">
-            <div class="empty-icon">⏳</div>
+            <div class="empty-icon">
+                ⏳
+            </div>
 
             <h3>Loading Inbox</h3>
 
@@ -84,12 +87,16 @@ function renderComments() {
     commentsPanel.innerHTML = `
         <div class="panel-header">
             <h2>Pending Comments</h2>
+
             <span class="count-badge">
                 ${comments.length}
             </span>
         </div>
 
-        <div id="comment-list" class="comment-list"></div>
+        <div
+            id="comment-list"
+            class="comment-list"
+        ></div>
     `;
 
     const commentList =
@@ -98,7 +105,9 @@ function renderComments() {
     if (!comments.length) {
         commentList.innerHTML = `
             <div class="empty-state">
-                <div class="empty-icon">💬</div>
+                <div class="empty-icon">
+                    💬
+                </div>
 
                 <h3>No Comments Yet</h3>
 
@@ -117,7 +126,6 @@ function renderComments() {
             document.createElement("button");
 
         card.type = "button";
-
         card.className = "comment-card";
 
         if (comment.id === selectedCommentId) {
@@ -125,6 +133,13 @@ function renderComments() {
         }
 
         card.dataset.commentId = comment.id;
+
+        const businessLabel =
+            `${comment.business_emoji || "🏢"} ` +
+            `${comment.business_name || "Unknown Business"}`;
+
+        const status =
+            comment.status || "pending";
 
         card.innerHTML = `
             <div class="comment-card-top">
@@ -136,21 +151,25 @@ function renderComments() {
                 <div class="comment-author">
 
                     <strong>
-                        ${escapeHtml(comment.author || "Customer")}
+                        ${escapeHtml(
+                            comment.author || "Customer"
+                        )}
                     </strong>
 
                     <small>
-                        ${escapeHtml(
-                            `${comment.business_emoji || "🏢"} ${comment.business_name || "Unknown Business"}`
-                        )}
+                        ${escapeHtml(businessLabel)}
                         //
-                        ${escapeHtml(comment.platform || "manual")}
+                        ${escapeHtml(
+                            comment.platform || "manual"
+                        )}
                     </small>
 
                 </div>
 
-                <span class="status-badge ${escapeHtml(comment.status || "pending")}">
-                    ${escapeHtml(comment.status || "pending")}
+                <span
+                    class="status-badge ${escapeHtml(status)}"
+                >
+                    ${escapeHtml(status)}
                 </span>
 
             </div>
@@ -184,12 +203,60 @@ function selectComment(commentId) {
 }
 
 function renderCommentDetails(comment) {
+    const status =
+        comment.status || "pending";
+
+    const businessLabel =
+        `${comment.business_emoji || "🏢"} ` +
+        `${comment.business_name || "Unknown Business"}`;
+
+    const source =
+        comment.source ||
+        comment.reply_source ||
+        "Not generated";
+
+    const ruleName =
+        comment.rule ||
+        comment.rule_name ||
+        "None";
+
+    const confidence =
+        comment.confidence !== undefined &&
+        comment.confidence !== null
+            ? `${comment.confidence}%`
+            : "Not available";
+
+    const processingTime =
+        comment.processingTime ??
+        comment.processing_time ??
+        null;
+
+    const formattedProcessingTime =
+        processingTime !== null
+            ? `${processingTime} ms`
+            : "Not available";
+
+    const estimatedCost =
+        comment.cost ??
+        comment.estimatedCost ??
+        comment.estimated_cost ??
+        null;
+
+    const formattedCost =
+        estimatedCost !== null
+            ? `$${Number(estimatedCost).toFixed(4)}`
+            : source.toUpperCase() === "RULE"
+                ? "$0.0000"
+                : "Not available";
+
     detailsPanel.innerHTML = `
         <div class="panel-header">
             <h2>AI Assistant</h2>
 
-            <span class="status-badge ${escapeHtml(comment.status || "pending")}">
-                ${escapeHtml(comment.status || "pending")}
+            <span
+                class="status-badge ${escapeHtml(status)}"
+            >
+                ${escapeHtml(status)}
             </span>
         </div>
 
@@ -199,18 +266,8 @@ function renderCommentDetails(comment) {
             </span>
 
             <div class="detail-value">
-                ${escapeHtml(comment.author || "Customer")}
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <span class="detail-label">
-                Business
-            </span>
-
-            <div class="detail-value">
                 ${escapeHtml(
-                    `${comment.business_emoji || "🏢"} ${comment.business_name || "Unknown Business"}`
+                    comment.author || "Customer"
                 )}
             </div>
         </div>
@@ -240,16 +297,76 @@ function renderCommentDetails(comment) {
 
         <div class="detail-section">
             <span class="detail-label">
+                AI Analysis
+            </span>
+
+            <div class="decision-grid">
+
+                <article class="decision-item">
+                    <span>Business</span>
+
+                    <strong>
+                        ${escapeHtml(businessLabel)}
+                    </strong>
+                </article>
+
+                <article class="decision-item">
+                    <span>Decision Source</span>
+
+                    <strong>
+                        ${escapeHtml(
+                            formatDecisionSource(source)
+                        )}
+                    </strong>
+                </article>
+
+                <article class="decision-item">
+                    <span>Matched Rule</span>
+
+                    <strong>
+                        ${escapeHtml(ruleName)}
+                    </strong>
+                </article>
+
+                <article class="decision-item">
+                    <span>Confidence</span>
+
+                    <strong>
+                        ${escapeHtml(confidence)}
+                    </strong>
+                </article>
+
+                <article class="decision-item">
+                    <span>Processing Time</span>
+
+                    <strong>
+                        ${escapeHtml(
+                            formattedProcessingTime
+                        )}
+                    </strong>
+                </article>
+
+                <article class="decision-item">
+                    <span>Estimated API Cost</span>
+
+                    <strong>
+                        ${escapeHtml(formattedCost)}
+                    </strong>
+                </article>
+
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <span class="detail-label">
                 Suggested Reply
             </span>
 
-            <div class="detail-value detail-reply">
-                ${
-                    comment.reply
-                        ? escapeHtml(comment.reply)
-                        : "No reply has been generated yet."
-                }
-            </div>
+            <textarea
+                id="inbox-reply-editor"
+                class="detail-value detail-reply reply-editor"
+                placeholder="Generate a reply or write one manually..."
+            >${escapeHtml(comment.reply || "")}</textarea>
         </div>
 
         <div class="inbox-actions">
@@ -260,6 +377,14 @@ function renderCommentDetails(comment) {
                 type="button"
             >
                 Generate Reply
+            </button>
+
+            <button
+                id="save-inbox-reply"
+                class="inbox-button"
+                type="button"
+            >
+                Save Reply
             </button>
 
             <button
@@ -311,7 +436,8 @@ function renderEmptyDetails() {
 
             <p>
                 Select a customer comment to view the business,
-                platform, suggested reply, and approval options.
+                platform, AI analysis, suggested reply, and
+                approval options.
             </p>
         </div>
     `;
@@ -319,72 +445,129 @@ function renderEmptyDetails() {
 
 function attachDetailEvents(comment) {
     const generateButton =
-        document.getElementById("generate-inbox-reply");
+        document.getElementById(
+            "generate-inbox-reply"
+        );
+
+    const saveButton =
+        document.getElementById(
+            "save-inbox-reply"
+        );
 
     const approveButton =
-        document.getElementById("approve-comment");
+        document.getElementById(
+            "approve-comment"
+        );
 
     const postedButton =
-        document.getElementById("mark-posted");
+        document.getElementById(
+            "mark-posted"
+        );
 
     const ignoreButton =
-        document.getElementById("ignore-comment");
+        document.getElementById(
+            "ignore-comment"
+        );
 
     const deleteButton =
-        document.getElementById("delete-comment");
-
-    generateButton.addEventListener("click", async () => {
-        await generateReplyForComment(comment);
-    });
-
-    approveButton.addEventListener("click", async () => {
-        await updateCommentStatus(
-            comment.id,
-            "approved"
+        document.getElementById(
+            "delete-comment"
         );
-    });
 
-    postedButton.addEventListener("click", async () => {
-        await updateCommentStatus(
-            comment.id,
-            "posted"
-        );
-    });
+    generateButton.addEventListener(
+        "click",
+        async () => {
+            await generateReplyForComment(
+                comment
+            );
+        }
+    );
 
-    ignoreButton.addEventListener("click", async () => {
-        await updateCommentStatus(
-            comment.id,
-            "ignored"
-        );
-    });
+    saveButton.addEventListener(
+        "click",
+        async () => {
+            await saveReplyForComment(
+                comment.id
+            );
+        }
+    );
 
-    deleteButton.addEventListener("click", async () => {
-        await deleteComment(comment);
-    });
+    approveButton.addEventListener(
+        "click",
+        async () => {
+            await updateCommentStatus(
+                comment.id,
+                "approved"
+            );
+        }
+    );
+
+    postedButton.addEventListener(
+        "click",
+        async () => {
+            await updateCommentStatus(
+                comment.id,
+                "posted"
+            );
+        }
+    );
+
+    ignoreButton.addEventListener(
+        "click",
+        async () => {
+            await updateCommentStatus(
+                comment.id,
+                "ignored"
+            );
+        }
+    );
+
+    deleteButton.addEventListener(
+        "click",
+        async () => {
+            await deleteComment(comment);
+        }
+    );
 }
 
 async function generateReplyForComment(comment) {
     const button =
-        document.getElementById("generate-inbox-reply");
+        document.getElementById(
+            "generate-inbox-reply"
+        );
+
+    const replyEditor =
+        document.getElementById(
+            "inbox-reply-editor"
+        );
+
+    const originalButtonText =
+        button.textContent;
 
     button.disabled = true;
     button.textContent = "Generating...";
 
     try {
-        const response = await fetch("/api/reply", {
-            method: "POST",
+        const response = await fetch(
+            "/api/reply",
+            {
+                method: "POST",
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
 
-            body: JSON.stringify({
-                comment: comment.content,
-                businessId: comment.business_id
-            })
-        });
+                body: JSON.stringify({
+                    comment: comment.content,
+                    businessId:
+                        comment.business_id
+                })
+            }
+        );
 
-        const result = await response.json();
+        const result =
+            await response.json();
 
         if (!response.ok) {
             throw new Error(
@@ -392,6 +575,37 @@ async function generateReplyForComment(comment) {
                 "Unable to generate reply."
             );
         }
+
+        replyEditor.value =
+            result.reply || "";
+
+        updateLocalComment(comment.id, {
+            reply: result.reply || "",
+            source: result.source || null,
+            rule:
+                result.rule ||
+                result.ruleName ||
+                null,
+            confidence:
+                result.confidence ?? null,
+            processingTime:
+                result.processingTime ?? null,
+            cost:
+                result.cost ??
+                result.estimatedCost ??
+                null,
+            business_name:
+                result.business ||
+                comment.business_name,
+            business_emoji:
+                result.emoji ||
+                comment.business_emoji
+        });
+
+        await saveReplyForComment(
+            comment.id,
+            false
+        );
 
         await updateCommentStatus(
             comment.id,
@@ -410,6 +624,30 @@ async function generateReplyForComment(comment) {
             );
 
         if (updatedComment) {
+            Object.assign(
+                updatedComment,
+                {
+                    source:
+                        result.source || null,
+
+                    rule:
+                        result.rule ||
+                        result.ruleName ||
+                        null,
+
+                    confidence:
+                        result.confidence ?? null,
+
+                    processingTime:
+                        result.processingTime ?? null,
+
+                    cost:
+                        result.cost ??
+                        result.estimatedCost ??
+                        null
+                }
+            );
+
             renderCommentDetails(
                 updatedComment
             );
@@ -423,7 +661,105 @@ async function generateReplyForComment(comment) {
         alert(error.message);
     } finally {
         button.disabled = false;
-        button.textContent = "Generate Reply";
+        button.textContent =
+            originalButtonText;
+    }
+}
+
+async function saveReplyForComment(
+    commentId,
+    showConfirmation = true
+) {
+    const replyEditor =
+        document.getElementById(
+            "inbox-reply-editor"
+        );
+
+    const reply =
+        replyEditor?.value.trim() || "";
+
+    if (!reply) {
+        if (showConfirmation) {
+            alert(
+                "There is no reply to save."
+            );
+        }
+
+        return;
+    }
+
+    /*
+     * The current backend may not yet have a dedicated
+     * inbox reply endpoint. Try the preferred endpoint first.
+     */
+    try {
+        const response = await fetch(
+            `/api/comments/${commentId}/reply`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    reply
+                })
+            }
+        );
+
+        if (response.status === 404) {
+            updateLocalComment(
+                commentId,
+                {
+                    reply
+                }
+            );
+
+            if (showConfirmation) {
+                alert(
+                    "Reply kept in the editor. The backend save endpoint will be added next."
+                );
+            }
+
+            return;
+        }
+
+        const result =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.error ||
+                "Unable to save reply."
+            );
+        }
+
+        updateLocalComment(
+            commentId,
+            {
+                reply:
+                    result.reply ||
+                    result.content ||
+                    reply
+            }
+        );
+
+        if (showConfirmation) {
+            alert(
+                "Reply saved successfully."
+            );
+        }
+    } catch (error) {
+        console.error(
+            "Reply save error:",
+            error
+        );
+
+        if (showConfirmation) {
+            alert(error.message);
+        }
     }
 }
 
@@ -439,7 +775,8 @@ async function updateCommentStatus(
                 method: "PATCH",
 
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type":
+                        "application/json"
                 },
 
                 body: JSON.stringify({
@@ -448,7 +785,8 @@ async function updateCommentStatus(
             }
         );
 
-        const result = await response.json();
+        const result =
+            await response.json();
 
         if (!response.ok) {
             throw new Error(
@@ -458,6 +796,15 @@ async function updateCommentStatus(
         }
 
         selectedCommentId = commentId;
+
+        updateLocalComment(
+            commentId,
+            {
+                status:
+                    result.status ||
+                    status
+            }
+        );
 
         if (reload) {
             await loadComments();
@@ -473,9 +820,12 @@ async function updateCommentStatus(
 }
 
 async function deleteComment(comment) {
-    const confirmed = window.confirm(
-        `Delete the comment from ${comment.author || "Customer"}?`
-    );
+    const confirmed =
+        window.confirm(
+            `Delete the comment from ${
+                comment.author || "Customer"
+            }?`
+        );
 
     if (!confirmed) {
         return;
@@ -489,7 +839,8 @@ async function deleteComment(comment) {
             }
         );
 
-        const result = await response.json();
+        const result =
+            await response.json();
 
         if (!response.ok) {
             throw new Error(
@@ -511,9 +862,31 @@ async function deleteComment(comment) {
     }
 }
 
+function updateLocalComment(
+    commentId,
+    changes
+) {
+    const comment =
+        comments.find(
+            (item) =>
+                item.id === commentId
+        );
+
+    if (!comment) {
+        return;
+    }
+
+    Object.assign(
+        comment,
+        changes
+    );
+}
+
 function getPlatformIcon(platform = "") {
     const normalizedPlatform =
-        platform.toLowerCase();
+        String(platform)
+            .trim()
+            .toLowerCase();
 
     const icons = {
         facebook: "📘",
@@ -523,7 +896,10 @@ function getPlatformIcon(platform = "") {
         manual: "⌨️"
     };
 
-    return icons[normalizedPlatform] || "💬";
+    return (
+        icons[normalizedPlatform] ||
+        "💬"
+    );
 }
 
 function formatPlatformName(platform = "") {
@@ -532,10 +908,36 @@ function formatPlatformName(platform = "") {
             .trim()
             .toLowerCase();
 
-    return normalizedPlatform
-        .charAt(0)
-        .toUpperCase() +
-        normalizedPlatform.slice(1);
+    return (
+        normalizedPlatform
+            .charAt(0)
+            .toUpperCase() +
+        normalizedPlatform.slice(1)
+    );
+}
+
+function formatDecisionSource(source = "") {
+    const normalizedSource =
+        String(source)
+            .trim()
+            .toUpperCase();
+
+    if (normalizedSource === "RULE") {
+        return "Rule Engine";
+    }
+
+    if (
+        normalizedSource === "GPT" ||
+        normalizedSource === "AI"
+    ) {
+        return "GPT";
+    }
+
+    if (!normalizedSource) {
+        return "Not generated";
+    }
+
+    return normalizedSource;
 }
 
 function escapeHtml(value = "") {

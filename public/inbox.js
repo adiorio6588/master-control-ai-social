@@ -4,40 +4,77 @@ const commentsPanel =
 const detailsPanel =
     document.querySelector(".details-panel");
 
+const searchInput =
+    document.getElementById("inbox-search");
+
+const refreshButton =
+    document.getElementById("refresh-inbox");
+
+const filterButtons =
+    document.querySelectorAll(".filter-button");
+
 let comments = [];
 let selectedCommentId = null;
+let activeStatus = "all";
+let searchTerm = "";
 
+/*
+ * Load comments from the backend.
+ */
 async function loadComments() {
     renderLoadingState();
+    setRefreshState(true);
 
     try {
         const response = await fetch("/api/comments");
+        const result = await response.json();
 
         if (!response.ok) {
-            throw new Error("Unable to load inbox comments.");
+            throw new Error(
+                result.error ||
+                "Unable to load inbox comments."
+            );
         }
 
-        comments = await response.json();
+        comments = Array.isArray(result)
+            ? result
+            : [];
 
+        updateStatusCounts();
         renderComments();
 
-        if (
-            selectedCommentId &&
-            comments.some(
-                (comment) =>
-                    comment.id === selectedCommentId
-            )
-        ) {
-            selectComment(selectedCommentId);
+        if (selectedCommentId) {
+            const selectedComment =
+                comments.find(
+                    (comment) =>
+                        Number(comment.id) ===
+                        Number(selectedCommentId)
+                );
+
+            if (selectedComment) {
+                renderCommentDetails(
+                    selectedComment
+                );
+            } else {
+                selectedCommentId = null;
+                renderEmptyDetails();
+            }
         } else {
             renderEmptyDetails();
         }
     } catch (error) {
-        console.error("Inbox loading error:", error);
+        console.error(
+            "Inbox loading error:",
+            error
+        );
+
+        if (!commentsPanel) {
+            return;
+        }
 
         commentsPanel.innerHTML = `
             <div class="panel-header">
-                <h2>Pending Comments</h2>
+                <h2>Social Inbox</h2>
 
                 <span class="count-badge">
                     ERR
@@ -56,13 +93,22 @@ async function loadComments() {
                 </p>
             </div>
         `;
+    } finally {
+        setRefreshState(false);
     }
 }
 
+/*
+ * Display loading state.
+ */
 function renderLoadingState() {
+    if (!commentsPanel) {
+        return;
+    }
+
     commentsPanel.innerHTML = `
         <div class="panel-header">
-            <h2>Pending Comments</h2>
+            <h2>Loading Comments</h2>
 
             <span class="count-badge">
                 ...
@@ -83,13 +129,74 @@ function renderLoadingState() {
     `;
 }
 
+/*
+ * Apply search and status filters.
+ */
+function getVisibleComments() {
+    return comments.filter((comment) => {
+        const normalizedStatus =
+            String(
+                comment.status || "pending"
+            ).toLowerCase();
+
+        const matchesStatus =
+            activeStatus === "all" ||
+            normalizedStatus === activeStatus;
+
+        if (!matchesStatus) {
+            return false;
+        }
+
+        if (!searchTerm) {
+            return true;
+        }
+
+        const searchableText = [
+            comment.author,
+            comment.content,
+            comment.business_name,
+            comment.platform,
+            comment.reply,
+            comment.rule,
+            comment.source
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+        return searchableText.includes(
+            searchTerm
+        );
+    });
+}
+
+/*
+ * Render inbox comment cards.
+ */
 function renderComments() {
+    if (!commentsPanel) {
+        return;
+    }
+
+    const visibleComments =
+        getVisibleComments();
+
+    const title =
+        activeStatus === "all"
+            ? "All Comments"
+            : `${capitalize(activeStatus)} Comments`;
+
     commentsPanel.innerHTML = `
         <div class="panel-header">
-            <h2>Pending Comments</h2>
+            <h2 id="comments-panel-title">
+                ${escapeHtml(title)}
+            </h2>
 
-            <span class="count-badge">
-                ${comments.length}
+            <span
+                id="visible-comment-count"
+                class="count-badge"
+            >
+                ${visibleComments.length}
             </span>
         </div>
 
@@ -100,20 +207,26 @@ function renderComments() {
     `;
 
     const commentList =
-        document.getElementById("comment-list");
+        document.getElementById(
+            "comment-list"
+        );
 
-    if (!comments.length) {
+    if (!commentList) {
+        return;
+    }
+
+    if (!visibleComments.length) {
         commentList.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon">
                     💬
                 </div>
 
-                <h3>No Comments Yet</h3>
+                <h3>No Matching Comments</h3>
 
                 <p>
-                    Facebook, Instagram, TikTok and YouTube
-                    comments will appear here.
+                    No comments match the current
+                    status filter or search.
                 </p>
             </div>
         `;
@@ -121,38 +234,43 @@ function renderComments() {
         return;
     }
 
-    comments.forEach((comment) => {
+    visibleComments.forEach((comment) => {
         const card =
             document.createElement("button");
 
         card.type = "button";
         card.className = "comment-card";
 
-        if (comment.id === selectedCommentId) {
+        if (
+            Number(comment.id) ===
+            Number(selectedCommentId)
+        ) {
             card.classList.add("selected");
         }
 
-        card.dataset.commentId = comment.id;
+        const status =
+            String(
+                comment.status || "pending"
+            ).toLowerCase();
 
         const businessLabel =
             `${comment.business_emoji || "🏢"} ` +
             `${comment.business_name || "Unknown Business"}`;
 
-        const status =
-            comment.status || "pending";
-
         card.innerHTML = `
             <div class="comment-card-top">
 
                 <div class="platform-icon">
-                    ${getPlatformIcon(comment.platform)}
+                    ${getPlatformIcon(
+                        comment.platform
+                    )}
                 </div>
 
                 <div class="comment-author">
-
                     <strong>
                         ${escapeHtml(
-                            comment.author || "Customer"
+                            comment.author ||
+                            "Customer"
                         )}
                     </strong>
 
@@ -160,10 +278,11 @@ function renderComments() {
                         ${escapeHtml(businessLabel)}
                         //
                         ${escapeHtml(
-                            comment.platform || "manual"
+                            formatPlatformName(
+                                comment.platform
+                            )
                         )}
                     </small>
-
                 </div>
 
                 <span
@@ -175,22 +294,33 @@ function renderComments() {
             </div>
 
             <p class="comment-preview">
-                ${escapeHtml(comment.content || "")}
+                ${escapeHtml(
+                    comment.content || ""
+                )}
             </p>
         `;
 
-        card.addEventListener("click", () => {
-            selectComment(comment.id);
-        });
+        card.addEventListener(
+            "click",
+            () => {
+                selectComment(comment.id);
+            }
+        );
 
         commentList.appendChild(card);
     });
 }
 
+/*
+ * Select a comment.
+ */
 function selectComment(commentId) {
-    const comment = comments.find(
-        (item) => item.id === commentId
-    );
+    const comment =
+        comments.find(
+            (item) =>
+                Number(item.id) ===
+                Number(commentId)
+        );
 
     if (!comment) {
         return;
@@ -202,9 +332,18 @@ function selectComment(commentId) {
     renderCommentDetails(comment);
 }
 
+/*
+ * Render the right-side detail panel.
+ */
 function renderCommentDetails(comment) {
+    if (!detailsPanel) {
+        return;
+    }
+
     const status =
-        comment.status || "pending";
+        String(
+            comment.status || "pending"
+        ).toLowerCase();
 
     const businessLabel =
         `${comment.business_emoji || "🏢"} ` +
@@ -212,45 +351,37 @@ function renderCommentDetails(comment) {
 
     const source =
         comment.source ||
-        comment.reply_source ||
         "Not generated";
 
     const ruleName =
         comment.rule ||
-        comment.rule_name ||
         "None";
 
     const confidence =
-        comment.confidence !== undefined &&
-        comment.confidence !== null
+        comment.confidence !== null &&
+        comment.confidence !== undefined
             ? `${comment.confidence}%`
             : "Not available";
 
     const processingTime =
-        comment.processingTime ??
-        comment.processing_time ??
-        null;
-
-    const formattedProcessingTime =
-        processingTime !== null
-            ? `${processingTime} ms`
+        comment.processing_time !== null &&
+        comment.processing_time !== undefined
+            ? `${comment.processing_time} ms`
             : "Not available";
 
     const estimatedCost =
-        comment.cost ??
-        comment.estimatedCost ??
-        comment.estimated_cost ??
-        null;
-
-    const formattedCost =
-        estimatedCost !== null
-            ? `$${Number(estimatedCost).toFixed(4)}`
+        comment.estimated_cost !== null &&
+        comment.estimated_cost !== undefined
+            ? `$${Number(
+                comment.estimated_cost
+            ).toFixed(4)}`
             : source.toUpperCase() === "RULE"
                 ? "$0.0000"
                 : "Not available";
 
     detailsPanel.innerHTML = `
         <div class="panel-header">
+
             <h2>AI Assistant</h2>
 
             <span
@@ -258,7 +389,10 @@ function renderCommentDetails(comment) {
             >
                 ${escapeHtml(status)}
             </span>
+
         </div>
+
+        ${renderWorkflow(status)}
 
         <div class="detail-section">
             <span class="detail-label">
@@ -278,9 +412,13 @@ function renderCommentDetails(comment) {
             </span>
 
             <div class="detail-value">
-                ${getPlatformIcon(comment.platform)}
+                ${getPlatformIcon(
+                    comment.platform
+                )}
                 ${escapeHtml(
-                    formatPlatformName(comment.platform)
+                    formatPlatformName(
+                        comment.platform
+                    )
                 )}
             </div>
         </div>
@@ -291,7 +429,9 @@ function renderCommentDetails(comment) {
             </span>
 
             <div class="detail-value">
-                ${escapeHtml(comment.content || "")}
+                ${escapeHtml(
+                    comment.content || ""
+                )}
             </div>
         </div>
 
@@ -315,7 +455,9 @@ function renderCommentDetails(comment) {
 
                     <strong>
                         ${escapeHtml(
-                            formatDecisionSource(source)
+                            formatDecisionSource(
+                                source
+                            )
                         )}
                     </strong>
                 </article>
@@ -341,7 +483,7 @@ function renderCommentDetails(comment) {
 
                     <strong>
                         ${escapeHtml(
-                            formattedProcessingTime
+                            processingTime
                         )}
                     </strong>
                 </article>
@@ -350,7 +492,9 @@ function renderCommentDetails(comment) {
                     <span>Estimated API Cost</span>
 
                     <strong>
-                        ${escapeHtml(formattedCost)}
+                        ${escapeHtml(
+                            estimatedCost
+                        )}
                     </strong>
                 </article>
 
@@ -365,8 +509,10 @@ function renderCommentDetails(comment) {
             <textarea
                 id="inbox-reply-editor"
                 class="detail-value detail-reply reply-editor"
-                placeholder="Generate a reply or write one manually..."
-            >${escapeHtml(comment.reply || "")}</textarea>
+                placeholder="Generate or write a reply..."
+            >${escapeHtml(
+                comment.reply || ""
+            )}</textarea>
         </div>
 
         <div class="inbox-actions">
@@ -412,6 +558,14 @@ function renderCommentDetails(comment) {
             </button>
 
             <button
+                id="return-pending"
+                class="inbox-button"
+                type="button"
+            >
+                Return to Pending
+            </button>
+
+            <button
                 id="delete-comment"
                 class="inbox-button danger"
                 type="button"
@@ -425,7 +579,98 @@ function renderCommentDetails(comment) {
     attachDetailEvents(comment);
 }
 
+/*
+ * Render approval workflow steps.
+ */
+function renderWorkflow(status) {
+    const steps = [
+        {
+            key: "pending",
+            label: "Pending"
+        },
+        {
+            key: "replied",
+            label: "AI Replied"
+        },
+        {
+            key: "approved",
+            label: "Approved"
+        },
+        {
+            key: "posted",
+            label: "Posted"
+        }
+    ];
+
+    const currentIndex =
+        steps.findIndex(
+            (step) => step.key === status
+        );
+
+    const ignored =
+        status === "ignored";
+
+    return `
+        <div class="workflow-panel">
+
+            <span class="detail-label">
+                Approval Workflow
+            </span>
+
+            <div class="workflow-steps">
+
+                ${steps.map(
+                    (step, index) => {
+                        const completed =
+                            !ignored &&
+                            currentIndex >= index;
+
+                        const active =
+                            !ignored &&
+                            step.key === status;
+
+                        return `
+                            <div
+                                class="workflow-step
+                                ${completed ? "completed" : ""}
+                                ${active ? "active" : ""}"
+                            >
+                                <span>
+                                    ${index + 1}
+                                </span>
+
+                                <strong>
+                                    ${step.label}
+                                </strong>
+                            </div>
+                        `;
+                    }
+                ).join("")}
+
+            </div>
+
+            ${
+                ignored
+                    ? `
+                        <p class="workflow-ignored">
+                            This comment is currently ignored.
+                        </p>
+                    `
+                    : ""
+            }
+
+        </div>
+    `;
+}
+
+/*
+ * Empty detail panel.
+ */
 function renderEmptyDetails() {
+    if (!detailsPanel) {
+        return;
+    }
+
     detailsPanel.innerHTML = `
         <div class="panel-header">
             <h2>AI Assistant</h2>
@@ -435,14 +680,17 @@ function renderEmptyDetails() {
             <h3>Waiting for a Comment</h3>
 
             <p>
-                Select a customer comment to view the business,
-                platform, AI analysis, suggested reply, and
-                approval options.
+                Select a comment to review its AI
+                analysis, suggested reply, and
+                approval workflow.
             </p>
         </div>
     `;
 }
 
+/*
+ * Attach action buttons.
+ */
 function attachDetailEvents(comment) {
     const generateButton =
         document.getElementById(
@@ -469,88 +717,117 @@ function attachDetailEvents(comment) {
             "ignore-comment"
         );
 
+    const pendingButton =
+        document.getElementById(
+            "return-pending"
+        );
+
     const deleteButton =
         document.getElementById(
             "delete-comment"
         );
 
-    generateButton.addEventListener(
-        "click",
-        async () => {
-            await generateReplyForComment(
-                comment
-            );
-        }
-    );
+    if (generateButton) {
+        generateButton.addEventListener(
+            "click",
+            () => {
+                generateReplyForComment(
+                    comment
+                );
+            }
+        );
+    }
 
-    saveButton.addEventListener(
-        "click",
-        async () => {
-            await saveReplyForComment(
-                comment.id
-            );
-        }
-    );
+    if (saveButton) {
+        saveButton.addEventListener(
+            "click",
+            () => {
+                saveReplyForComment(
+                    comment.id
+                );
+            }
+        );
+    }
 
-    approveButton.addEventListener(
-        "click",
-        async () => {
-            await updateCommentStatus(
-                comment.id,
-                "approved"
-            );
-        }
-    );
+    if (approveButton) {
+        approveButton.addEventListener(
+            "click",
+            () => {
+                updateCommentStatus(
+                    comment.id,
+                    "approved"
+                );
+            }
+        );
+    }
 
-    postedButton.addEventListener(
-        "click",
-        async () => {
-            await updateCommentStatus(
-                comment.id,
-                "posted"
-            );
-        }
-    );
+    if (postedButton) {
+        postedButton.addEventListener(
+            "click",
+            () => {
+                updateCommentStatus(
+                    comment.id,
+                    "posted"
+                );
+            }
+        );
+    }
 
-    ignoreButton.addEventListener(
-        "click",
-        async () => {
-            await updateCommentStatus(
-                comment.id,
-                "ignored"
-            );
-        }
-    );
+    if (ignoreButton) {
+        ignoreButton.addEventListener(
+            "click",
+            () => {
+                updateCommentStatus(
+                    comment.id,
+                    "ignored"
+                );
+            }
+        );
+    }
 
-    deleteButton.addEventListener(
-        "click",
-        async () => {
-            await deleteComment(comment);
-        }
-    );
+    if (pendingButton) {
+        pendingButton.addEventListener(
+            "click",
+            () => {
+                updateCommentStatus(
+                    comment.id,
+                    "pending"
+                );
+            }
+        );
+    }
+
+    if (deleteButton) {
+        deleteButton.addEventListener(
+            "click",
+            () => {
+                deleteComment(comment);
+            }
+        );
+    }
 }
 
-async function generateReplyForComment(comment) {
+/*
+ * Generate AI or rule reply.
+ */
+async function generateReplyForComment(
+    comment
+) {
     const button =
         document.getElementById(
             "generate-inbox-reply"
         );
 
-    const replyEditor =
-        document.getElementById(
-            "inbox-reply-editor"
-        );
-
-    const originalButtonText =
-        button.textContent;
+    if (!button) {
+        return;
+    }
 
     button.disabled = true;
     button.textContent = "Generating...";
 
     try {
-        const response = await fetch(
-            "/api/reply",
-            {
+        const response =
+            await fetch("/api/reply", {
                 method: "POST",
 
                 headers: {
@@ -559,12 +836,12 @@ async function generateReplyForComment(comment) {
                 },
 
                 body: JSON.stringify({
+                    commentId: comment.id,
                     comment: comment.content,
                     businessId:
                         comment.business_id
                 })
-            }
-        );
+            });
 
         const result =
             await response.json();
@@ -576,85 +853,14 @@ async function generateReplyForComment(comment) {
             );
         }
 
-        replyEditor.value =
-            result.reply || "";
-
-        updateLocalComment(comment.id, {
-            reply: result.reply || "",
-            source: result.source || null,
-            rule:
-                result.rule ||
-                result.ruleName ||
-                null,
-            confidence:
-                result.confidence ?? null,
-            processingTime:
-                result.processingTime ?? null,
-            cost:
-                result.cost ??
-                result.estimatedCost ??
-                null,
-            business_name:
-                result.business ||
-                comment.business_name,
-            business_emoji:
-                result.emoji ||
-                comment.business_emoji
-        });
-
-        await saveReplyForComment(
-            comment.id,
-            false
-        );
-
-        await updateCommentStatus(
-            comment.id,
-            "replied",
-            false
-        );
+        selectedCommentId =
+            result.commentId ||
+            comment.id;
 
         await loadComments();
-
-        selectedCommentId = comment.id;
-
-        const updatedComment =
-            comments.find(
-                (item) =>
-                    item.id === comment.id
-            );
-
-        if (updatedComment) {
-            Object.assign(
-                updatedComment,
-                {
-                    source:
-                        result.source || null,
-
-                    rule:
-                        result.rule ||
-                        result.ruleName ||
-                        null,
-
-                    confidence:
-                        result.confidence ?? null,
-
-                    processingTime:
-                        result.processingTime ?? null,
-
-                    cost:
-                        result.cost ??
-                        result.estimatedCost ??
-                        null
-                }
-            );
-
-            renderCommentDetails(
-                updatedComment
-            );
-        }
     } catch (error) {
         console.error(
-            "Inbox reply generation error:",
+            "Generate reply error:",
             error
         );
 
@@ -662,69 +868,53 @@ async function generateReplyForComment(comment) {
     } finally {
         button.disabled = false;
         button.textContent =
-            originalButtonText;
+            "Generate Reply";
     }
 }
 
+/*
+ * Save manually edited reply.
+ */
 async function saveReplyForComment(
-    commentId,
-    showConfirmation = true
+    commentId
 ) {
     const replyEditor =
         document.getElementById(
             "inbox-reply-editor"
         );
 
+    if (!replyEditor) {
+        return;
+    }
+
     const reply =
-        replyEditor?.value.trim() || "";
+        replyEditor.value.trim();
 
     if (!reply) {
-        if (showConfirmation) {
-            alert(
-                "There is no reply to save."
-            );
-        }
+        alert(
+            "Enter a reply before saving."
+        );
 
         return;
     }
 
-    /*
-     * The current backend may not yet have a dedicated
-     * inbox reply endpoint. Try the preferred endpoint first.
-     */
     try {
-        const response = await fetch(
-            `/api/comments/${commentId}/reply`,
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-                    reply
-                })
-            }
-        );
-
-        if (response.status === 404) {
-            updateLocalComment(
-                commentId,
+        const response =
+            await fetch(
+                `/api/comments/${commentId}/reply`,
                 {
-                    reply
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        reply
+                    })
                 }
             );
-
-            if (showConfirmation) {
-                alert(
-                    "Reply kept in the editor. The backend save endpoint will be added next."
-                );
-            }
-
-            return;
-        }
 
         const result =
             await response.json();
@@ -736,54 +926,44 @@ async function saveReplyForComment(
             );
         }
 
-        updateLocalComment(
-            commentId,
-            {
-                reply:
-                    result.reply ||
-                    result.content ||
-                    reply
-            }
-        );
+        selectedCommentId =
+            commentId;
 
-        if (showConfirmation) {
-            alert(
-                "Reply saved successfully."
-            );
-        }
+        await loadComments();
     } catch (error) {
         console.error(
-            "Reply save error:",
+            "Save reply error:",
             error
         );
 
-        if (showConfirmation) {
-            alert(error.message);
-        }
+        alert(error.message);
     }
 }
 
+/*
+ * Update comment status.
+ */
 async function updateCommentStatus(
     commentId,
-    status,
-    reload = true
+    status
 ) {
     try {
-        const response = await fetch(
-            `/api/comments/${commentId}/status`,
-            {
-                method: "PATCH",
+        const response =
+            await fetch(
+                `/api/comments/${commentId}/status`,
+                {
+                    method: "PATCH",
 
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-                body: JSON.stringify({
-                    status
-                })
-            }
-        );
+                    body: JSON.stringify({
+                        status
+                    })
+                }
+            );
 
         const result =
             await response.json();
@@ -791,24 +971,14 @@ async function updateCommentStatus(
         if (!response.ok) {
             throw new Error(
                 result.error ||
-                "Unable to update comment status."
+                "Unable to update status."
             );
         }
 
-        selectedCommentId = commentId;
+        selectedCommentId =
+            commentId;
 
-        updateLocalComment(
-            commentId,
-            {
-                status:
-                    result.status ||
-                    status
-            }
-        );
-
-        if (reload) {
-            await loadComments();
-        }
+        await loadComments();
     } catch (error) {
         console.error(
             "Status update error:",
@@ -819,11 +989,15 @@ async function updateCommentStatus(
     }
 }
 
+/*
+ * Delete a comment.
+ */
 async function deleteComment(comment) {
     const confirmed =
         window.confirm(
             `Delete the comment from ${
-                comment.author || "Customer"
+                comment.author ||
+                "Customer"
             }?`
         );
 
@@ -832,12 +1006,13 @@ async function deleteComment(comment) {
     }
 
     try {
-        const response = await fetch(
-            `/api/comments/${comment.id}`,
-            {
-                method: "DELETE"
-            }
-        );
+        const response =
+            await fetch(
+                `/api/comments/${comment.id}`,
+                {
+                    method: "DELETE"
+                }
+            );
 
         const result =
             await response.json();
@@ -862,32 +1037,125 @@ async function deleteComment(comment) {
     }
 }
 
-function updateLocalComment(
-    commentId,
-    changes
-) {
-    const comment =
-        comments.find(
-            (item) =>
-                item.id === commentId
+/*
+ * Update toolbar counts.
+ */
+function updateStatusCounts() {
+    const statuses = [
+        "pending",
+        "replied",
+        "approved",
+        "posted",
+        "ignored"
+    ];
+
+    setCount(
+        "count-all",
+        comments.length
+    );
+
+    statuses.forEach((status) => {
+        const count =
+            comments.filter(
+                (comment) =>
+                    String(
+                        comment.status ||
+                        "pending"
+                    ).toLowerCase() ===
+                    status
+            ).length;
+
+        setCount(
+            `count-${status}`,
+            count
+        );
+    });
+}
+
+function setCount(elementId, value) {
+    const element =
+        document.getElementById(
+            elementId
         );
 
-    if (!comment) {
-        return;
+    if (element) {
+        element.textContent = value;
     }
+}
 
-    Object.assign(
-        comment,
-        changes
+/*
+ * Filter buttons.
+ */
+filterButtons.forEach((button) => {
+    button.addEventListener(
+        "click",
+        () => {
+            activeStatus =
+                button.dataset.status ||
+                "all";
+
+            filterButtons.forEach(
+                (item) => {
+                    item.classList.remove(
+                        "active"
+                    );
+                }
+            );
+
+            button.classList.add(
+                "active"
+            );
+
+            renderComments();
+        }
+    );
+});
+
+/*
+ * Search input.
+ */
+if (searchInput) {
+    searchInput.addEventListener(
+        "input",
+        () => {
+            searchTerm =
+                searchInput.value
+                    .trim()
+                    .toLowerCase();
+
+            renderComments();
+        }
     );
 }
 
-function getPlatformIcon(platform = "") {
-    const normalizedPlatform =
-        String(platform)
-            .trim()
-            .toLowerCase();
+/*
+ * Refresh button.
+ */
+if (refreshButton) {
+    refreshButton.addEventListener(
+        "click",
+        loadComments
+    );
+}
 
+function setRefreshState(isLoading) {
+    if (!refreshButton) {
+        return;
+    }
+
+    refreshButton.disabled =
+        isLoading;
+
+    refreshButton.textContent =
+        isLoading
+            ? "Loading..."
+            : "Refresh";
+}
+
+/*
+ * Display helpers.
+ */
+function getPlatformIcon(platform = "") {
     const icons = {
         facebook: "📘",
         instagram: "📸",
@@ -896,48 +1164,54 @@ function getPlatformIcon(platform = "") {
         manual: "⌨️"
     };
 
-    return (
-        icons[normalizedPlatform] ||
-        "💬"
-    );
+    const normalized =
+        String(platform)
+            .toLowerCase();
+
+    return icons[normalized] || "💬";
 }
 
-function formatPlatformName(platform = "") {
-    const normalizedPlatform =
+function formatPlatformName(
+    platform = ""
+) {
+    const normalized =
         String(platform || "manual")
             .trim()
             .toLowerCase();
 
-    return (
-        normalizedPlatform
-            .charAt(0)
-            .toUpperCase() +
-        normalizedPlatform.slice(1)
-    );
+    return capitalize(normalized);
 }
 
-function formatDecisionSource(source = "") {
-    const normalizedSource =
+function formatDecisionSource(
+    source = ""
+) {
+    const normalized =
         String(source)
             .trim()
             .toUpperCase();
 
-    if (normalizedSource === "RULE") {
+    if (normalized === "RULE") {
         return "Rule Engine";
     }
 
     if (
-        normalizedSource === "GPT" ||
-        normalizedSource === "AI"
+        normalized === "GPT" ||
+        normalized === "AI"
     ) {
         return "GPT";
     }
 
-    if (!normalizedSource) {
-        return "Not generated";
-    }
+    return normalized ||
+        "Not generated";
+}
 
-    return normalizedSource;
+function capitalize(value = "") {
+    const text = String(value);
+
+    return (
+        text.charAt(0).toUpperCase() +
+        text.slice(1)
+    );
 }
 
 function escapeHtml(value = "") {

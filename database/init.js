@@ -62,10 +62,104 @@ function initializeDatabase() {
         );
     `);
 
+    upgradeCommentsTable();
+    createIndexes();
     seedBusinesses();
     seedReplyRules();
 
     console.log("Database initialized successfully.");
+}
+
+function upgradeCommentsTable() {
+    const columns = database
+        .prepare(`
+            PRAGMA table_info(comments)
+        `)
+        .all();
+
+    const existingColumns = columns.map(
+        (column) => column.name
+    );
+
+    addColumnIfMissing(
+        existingColumns,
+        "reply",
+        "reply TEXT"
+    );
+
+    addColumnIfMissing(
+        existingColumns,
+        "source",
+        "source TEXT"
+    );
+
+    addColumnIfMissing(
+        existingColumns,
+        "rule",
+        "rule TEXT"
+    );
+
+    addColumnIfMissing(
+        existingColumns,
+        "confidence",
+        "confidence INTEGER"
+    );
+
+    addColumnIfMissing(
+        existingColumns,
+        "processing_time",
+        "processing_time INTEGER"
+    );
+
+    addColumnIfMissing(
+        existingColumns,
+        "estimated_cost",
+        "estimated_cost REAL"
+    );
+
+    addColumnIfMissing(
+        existingColumns,
+        "updated_at",
+        "updated_at TEXT"
+    );
+}
+
+function addColumnIfMissing(
+    existingColumns,
+    columnName,
+    columnDefinition
+) {
+    if (existingColumns.includes(columnName)) {
+        return;
+    }
+
+    console.log(
+        `Adding comments.${columnName}`
+    );
+
+    database.exec(`
+        ALTER TABLE comments
+        ADD COLUMN ${columnDefinition}
+    `);
+}
+
+function createIndexes() {
+    database.exec(`
+        CREATE INDEX IF NOT EXISTS idx_comments_business_id
+        ON comments(business_id);
+
+        CREATE INDEX IF NOT EXISTS idx_comments_status
+        ON comments(status);
+
+        CREATE INDEX IF NOT EXISTS idx_comments_platform
+        ON comments(platform);
+
+        CREATE INDEX IF NOT EXISTS idx_replies_comment_id
+        ON replies(comment_id);
+
+        CREATE INDEX IF NOT EXISTS idx_reply_rules_business_id
+        ON reply_rules(business_id);
+    `);
 }
 
 function seedBusinesses() {
@@ -318,7 +412,9 @@ function seedReplyRules() {
 
     const insertMany = database.transaction((rows) => {
         for (const rule of rows) {
-            const business = findBusiness.get(rule.business);
+            const business = findBusiness.get(
+                rule.business
+            );
 
             if (!business) {
                 console.warn(

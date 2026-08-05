@@ -10,7 +10,7 @@
 
     <title>Master Control AI</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
@@ -19,54 +19,33 @@
 
         <h2>Master Control</h2>
 
-        <nav class="sidebar-navigation">
+        <a class="sidebar-link active-nav" href="/">
+            Dashboard
+        </a>
 
-            <a
-                href="/"
-                class="sidebar-link active-nav"
-            >
-                <span>Dashboard</span>
-            </a>
+        <a class="sidebar-link" href="/pages/inbox.html">
+            Social Inbox
+        </a>
 
-            <a
-                href="#"
-                class="sidebar-link disabled-link"
-            >
-                <span>Social Inbox</span>
-                <small>Coming Soon</small>
-            </a>
+        <a class="sidebar-link" href="/pages/businesses.html">
+            Businesses
+        </a>
 
-            <a
-                href="/businesses.html"
-                class="sidebar-link"
-            >
-                <span>Businesses</span>
-            </a>
+        <a class="sidebar-link" href="/pages/rules.html">
+            AI Rules
+        </a>
 
-            <a
-                href="/rules.html"
-                class="sidebar-link"
-            >
-                <span>Rules Manager</span>
-            </a>
+        <a class="sidebar-link" href="/pages/automation.html">
+            Automation
+        </a>
 
-            <a
-                href="#"
-                class="sidebar-link disabled-link"
-            >
-                <span>Analytics</span>
-                <small>Coming Soon</small>
-            </a>
+        <a class="sidebar-link" href="/pages/analytics.html">
+            Analytics
+        </a>
 
-            <a
-                href="#"
-                class="sidebar-link disabled-link"
-            >
-                <span>Settings</span>
-                <small>Coming Soon</small>
-            </a>
-
-        </nav>
+        <a class="sidebar-link" href="/pages/settings.html">
+            Settings
+        </a>
 
         <div class="sidebar-system-status">
 
@@ -86,6 +65,7 @@
         <header class="command-header">
 
             <div>
+
                 <p class="system-label">
                     MASTER CONTROL // SYSTEM 06
                 </p>
@@ -93,16 +73,17 @@
                 <h1>Social Reply Command</h1>
 
                 <p class="header-description">
-                    Monitor businesses, generate responses,
-                    and review recent activity from one
-                    control center.
+                    Monitor businesses, generate responses, and review
+                    recent activity from one control center.
                 </p>
+
             </div>
 
             <div
                 class="robot-emblem"
-                aria-label="Master Control emblem"
+                aria-label="Master Control robot emblem"
             >
+
                 <div class="robot-antenna"></div>
 
                 <div class="robot-head">
@@ -115,6 +96,7 @@
                     <div class="robot-mouth"></div>
 
                 </div>
+
             </div>
 
         </header>
@@ -122,6 +104,7 @@
         <section class="system-stats">
 
             <article class="stat-panel">
+
                 <span class="stat-label">
                     SYSTEM STATUS
                 </span>
@@ -133,9 +116,11 @@
                 <small>
                     Local server connected
                 </small>
+
             </article>
 
             <article class="stat-panel">
+
                 <span class="stat-label">
                     BUSINESSES
                 </span>
@@ -147,9 +132,11 @@
                 <small>
                     Profiles available
                 </small>
+
             </article>
 
             <article class="stat-panel">
+
                 <span class="stat-label">
                     REPLIES LOGGED
                 </span>
@@ -161,9 +148,11 @@
                 <small>
                     Saved in SQLite
                 </small>
+
             </article>
 
             <article class="stat-panel">
+
                 <span class="stat-label">
                     AI MODE
                 </span>
@@ -175,6 +164,7 @@
                 <small>
                     No API charges
                 </small>
+
             </article>
 
         </section>
@@ -192,9 +182,11 @@
                     </label>
 
                     <select id="business">
+
                         <option value="">
                             Loading businesses...
                         </option>
+
                     </select>
 
                 </div>
@@ -212,10 +204,7 @@
                         placeholder="Paste a customer comment here..."
                     ></textarea>
 
-                    <button
-                        id="generate"
-                        type="button"
-                    >
+                    <button id="generate" type="button">
                         Generate AI Reply
                     </button>
 
@@ -260,11 +249,13 @@
                 <div class="activity-header">
 
                     <div>
+
                         <span class="stat-label">
                             LIVE ACTIVITY
                         </span>
 
                         <h2>Reply History</h2>
+
                     </div>
 
                     <button
@@ -281,9 +272,11 @@
                     id="history-list"
                     class="history-list"
                 >
+
                     <div class="history-empty">
                         Loading activity log...
                     </div>
+
                 </div>
 
             </section>
@@ -292,7 +285,7 @@
 
     </main>
 
-    <script src="app.js"></script>
+    <script src="/js/app.js"></script>
 
 </body>
 </html>

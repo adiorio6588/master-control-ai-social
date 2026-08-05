@@ -3,10 +3,6 @@ const router = express.Router();
 
 const database = require("../database/database");
 
-/*
- * GET /api/businesses
- * Return every business.
- */
 router.get("/businesses", (req, res) => {
     try {
         const businesses = database
@@ -25,7 +21,7 @@ router.get("/businesses", (req, res) => {
 
         res.json(businesses);
     } catch (error) {
-        console.error("Load businesses error:", error);
+        console.error("Business loading error:", error);
 
         res.status(500).json({
             error: "Unable to load businesses."
@@ -33,49 +29,9 @@ router.get("/businesses", (req, res) => {
     }
 });
 
-/*
- * GET /api/businesses/:id
- * Return one business.
- */
-router.get("/businesses/:id", (req, res) => {
-    try {
-        const businessId = Number(req.params.id);
-
-        if (!businessId) {
-            return res.status(400).json({
-                error: "A valid business ID is required."
-            });
-        }
-
-        const business = getBusinessById(businessId);
-
-        if (!business) {
-            return res.status(404).json({
-                error: "Business not found."
-            });
-        }
-
-        res.json(business);
-    } catch (error) {
-        console.error("Load business error:", error);
-
-        res.status(500).json({
-            error: "Unable to load the business."
-        });
-    }
-});
-
-/*
- * POST /api/businesses
- * Create a new business.
- */
 router.post("/businesses", (req, res) => {
     try {
-        const {
-            name,
-            emoji = "🏢",
-            prompt
-        } = req.body;
+        const { name, emoji = "", prompt } = req.body;
 
         if (!name || !name.trim()) {
             return res.status(400).json({
@@ -85,7 +41,7 @@ router.post("/businesses", (req, res) => {
 
         if (!prompt || !prompt.trim()) {
             return res.status(400).json({
-                error: "Business AI instructions are required."
+                error: "Business prompt is required."
             });
         }
 
@@ -100,93 +56,58 @@ router.post("/businesses", (req, res) => {
             `)
             .run(
                 name.trim(),
-                emoji.trim() || "🏢",
+                emoji.trim(),
                 prompt.trim()
             );
 
-        const business = getBusinessById(
-            result.lastInsertRowid
-        );
+        const business = database
+            .prepare(`
+                SELECT *
+                FROM businesses
+                WHERE id = ?
+            `)
+            .get(result.lastInsertRowid);
 
         res.status(201).json(business);
     } catch (error) {
-        console.error("Create business error:", error);
+        console.error("Business creation error:", error);
 
-        if (
-            error.code === "SQLITE_CONSTRAINT_UNIQUE" ||
-            String(error.message).includes(
-                "UNIQUE constraint failed"
-            )
-        ) {
+        if (error.message.includes("UNIQUE constraint failed")) {
             return res.status(409).json({
-                error:
-                    "A business with this name already exists."
+                error: "A business with that name already exists."
             });
         }
 
         res.status(500).json({
-            error: "Unable to create the business."
+            error: "Unable to create business."
         });
     }
 });
 
-/*
- * PUT /api/businesses/:id
- * Update an existing business.
- */
 router.put("/businesses/:id", (req, res) => {
     try {
         const businessId = Number(req.params.id);
+        const { name, emoji = "", prompt } = req.body;
 
-        const {
-            name,
-            emoji,
-            prompt
-        } = req.body;
-
-        if (!businessId) {
+        if (!Number.isInteger(businessId)) {
             return res.status(400).json({
-                error: "A valid business ID is required."
+                error: "Invalid business ID."
             });
         }
 
-        const existingBusiness =
-            getBusinessById(businessId);
-
-        if (!existingBusiness) {
-            return res.status(404).json({
-                error: "Business not found."
-            });
-        }
-
-        const updatedName =
-            name !== undefined
-                ? name.trim()
-                : existingBusiness.name;
-
-        const updatedEmoji =
-            emoji !== undefined
-                ? emoji.trim() || "🏢"
-                : existingBusiness.emoji;
-
-        const updatedPrompt =
-            prompt !== undefined
-                ? prompt.trim()
-                : existingBusiness.prompt;
-
-        if (!updatedName) {
+        if (!name || !name.trim()) {
             return res.status(400).json({
                 error: "Business name is required."
             });
         }
 
-        if (!updatedPrompt) {
+        if (!prompt || !prompt.trim()) {
             return res.status(400).json({
-                error: "Business AI instructions are required."
+                error: "Business prompt is required."
             });
         }
 
-        database
+        const result = database
             .prepare(`
                 UPDATE businesses
                 SET
@@ -197,48 +118,76 @@ router.put("/businesses/:id", (req, res) => {
                 WHERE id = ?
             `)
             .run(
-                updatedName,
-                updatedEmoji,
-                updatedPrompt,
+                name.trim(),
+                emoji.trim(),
+                prompt.trim(),
                 businessId
             );
 
-        res.json(getBusinessById(businessId));
-    } catch (error) {
-        console.error("Update business error:", error);
+        if (result.changes === 0) {
+            return res.status(404).json({
+                error: "Business not found."
+            });
+        }
 
-        if (
-            error.code === "SQLITE_CONSTRAINT_UNIQUE" ||
-            String(error.message).includes(
-                "UNIQUE constraint failed"
-            )
-        ) {
+        const business = database
+            .prepare(`
+                SELECT *
+                FROM businesses
+                WHERE id = ?
+            `)
+            .get(businessId);
+
+        res.json(business);
+    } catch (error) {
+        console.error("Business update error:", error);
+
+        if (error.message.includes("UNIQUE constraint failed")) {
             return res.status(409).json({
-                error:
-                    "A business with this name already exists."
+                error: "A business with that name already exists."
             });
         }
 
         res.status(500).json({
-            error: "Unable to update the business."
+            error: "Unable to update business."
         });
     }
 });
 
-function getBusinessById(businessId) {
-    return database
-        .prepare(`
-            SELECT
-                id,
-                name,
-                emoji,
-                prompt,
-                created_at,
-                updated_at
-            FROM businesses
-            WHERE id = ?
-        `)
-        .get(Number(businessId));
-}
+router.delete("/businesses/:id", (req, res) => {
+    try {
+        const businessId = Number(req.params.id);
+
+        if (!Number.isInteger(businessId)) {
+            return res.status(400).json({
+                error: "Invalid business ID."
+            });
+        }
+
+        const result = database
+            .prepare(`
+                DELETE FROM businesses
+                WHERE id = ?
+            `)
+            .run(businessId);
+
+        if (result.changes === 0) {
+            return res.status(404).json({
+                error: "Business not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Business deleted."
+        });
+    } catch (error) {
+        console.error("Business deletion error:", error);
+
+        res.status(500).json({
+            error: "Unable to delete business."
+        });
+    }
+});
 
 module.exports = router;

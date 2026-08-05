@@ -3,7 +3,9 @@ const router = express.Router();
 
 const database = require("../database/database");
 
-const { generateReply } = require("../services/openai");
+const {
+    generateReply
+} = require("../services/openai");
 
 const {
     findMatchingRule
@@ -14,84 +16,104 @@ const {
 } = require("../services/businessDetector");
 
 router.post("/reply", async (req, res) => {
+    const startedAt = Date.now();
 
     try {
+        const comment =
+            typeof req.body.comment === "string"
+                ? req.body.comment.trim()
+                : "";
 
-        const { comment } = req.body;
+        let businessId =
+            Number(req.body.businessId) || null;
 
-        let { businessId } = req.body;
+        const requestedCommentId =
+            Number(req.body.commentId) || null;
+
+        let detectedAutomatically = false;
 
         if (!comment) {
-
             return res.status(400).json({
                 error: "Comment is required."
             });
-
         }
 
-        // Automatically detect the business if none was selected.
+        /*
+         * Automatically detect the business when
+         * no business ID is provided.
+         */
         if (!businessId) {
+            const detection =
+                detectBusiness(comment);
 
-            const detected = detectBusiness(comment);
-
-            if (detected.detected) {
-
-                businessId = detected.businessId;
-
-                console.log(
-                    `🧠 Detected Business: ${detected.emoji} ${detected.businessName}`
-                );
-
-            } else {
-
+            if (!detection.detected) {
                 return res.status(400).json({
-                    error: "Unable to determine which business this comment belongs to."
+                    error:
+                        "Unable to determine which business this comment belongs to."
                 });
-
             }
 
+            businessId =
+                Number(detection.businessId);
+
+            detectedAutomatically = true;
+
+            console.log(
+                `🧠 Detected business: ` +
+                `${detection.emoji || "🏢"} ` +
+                `${detection.businessName}`
+            );
         }
 
         const business = database
             .prepare(`
-                SELECT *
+                SELECT
+                    id,
+                    name,
+                    emoji,
+                    prompt
                 FROM businesses
                 WHERE id = ?
             `)
             .get(businessId);
 
         if (!business) {
-
             return res.status(404).json({
                 error: "Business not found."
             });
-
         }
 
-        // Try the Rules Engine first.
-        const rule = findMatchingRule(
-            businessId,
-            comment
-        );
+        /*
+         * Check for an enabled reply rule before
+         * calling the AI service.
+         */
+        const ruleResult =
+            findMatchingRule(
+                business.id,
+                comment
+            );
 
         let reply;
         let source;
         let ruleName = null;
+        let confidence = null;
+        let estimatedCost = null;
 
-        if (rule.matched) {
-
-            console.log(
-                `✅ Rule Matched: ${rule.ruleName}`
-            );
-
-            reply = rule.reply;
+        if (ruleResult.matched) {
+            reply = ruleResult.reply;
             source = "RULE";
-            ruleName = rule.ruleName;
-
-        } else {
+            ruleName = ruleResult.ruleName;
+            confidence = 100;
+            estimatedCost = 0;
 
             console.log(
-                "🤖 No rule found. Using GPT..."
+                `✅ Rule matched: ${ruleName}`
+            );
+        } else {
+            source = "GPT";
+
+            console.log(
+                "🤖 No rule matched. Using GPT or mock mode..."
             );
 
             reply = await generateReply(
@@ -99,38 +121,207 @@ router.post("/reply", async (req, res) => {
                 comment
             );
 
-            source = "GPT";
-
+            /*
+             * GPT confidence and cost remain null until
+             * real token-usage data is recorded.
+             */
+            confidence = null;
+            estimatedCost = null;
         }
 
+        const processingTime =
+            Date.now() - startedAt;
+
+        /*
+         * Save the comment, reply, and AI analysis.
+         *
+         * If commentId is provided, update that inbox item.
+         * Otherwise, create a new manual comment for dashboard use.
+         */
+        const saveResult =
+            database.transaction(() => {
+                let commentId =
+                    requestedCommentId;
+
+                if (commentId) {
+                    const existingComment =
+                        database
+                            .prepare(`
+                                SELECT
+                                    id,
+                                    business_id
+                                FROM comments
+                                WHERE id = ?
+                            `)
+                            .get(commentId);
+
+                    if (!existingComment) {
+                        const error =
+                            new Error(
+                                "Inbox comment not found."
+                            );
+
+                        error.statusCode = 404;
+
+                        throw error;
+                    }
+
+                    database
+                        .prepare(`
+                            UPDATE comments
+                            SET
+                                business_id = ?,
+                                reply = ?,
+                                source = ?,
+                                rule = ?,
+                                confidence = ?,
+                                processing_time = ?,
+                                estimated_cost = ?,
+                                status = 'replied',
+                                updated_at =
+                                    CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        `)
+                        .run(
+                            business.id,
+                            reply,
+                            source,
+                            ruleName,
+                            confidence,
+                            processingTime,
+                            estimatedCost,
+                            commentId
+                        );
+                } else {
+                    const commentResult =
+                        database
+                            .prepare(`
+                                INSERT INTO comments (
+                                    business_id,
+                                    platform,
+                                    author,
+                                    content,
+                                    status,
+                                    reply,
+                                    source,
+                                    rule,
+                                    confidence,
+                                    processing_time,
+                                    estimated_cost,
+                                    updated_at
+                                )
+                                VALUES (
+                                    ?,
+                                    'manual',
+                                    'Customer',
+                                    ?,
+                                    'replied',
+                                    ?,
+                                    ?,
+                                    ?,
+                                    ?,
+                                    ?,
+                                    ?,
+                                    CURRENT_TIMESTAMP
+                                )
+                            `)
+                            .run(
+                                business.id,
+                                comment,
+                                reply,
+                                source,
+                                ruleName,
+                                confidence,
+                                processingTime,
+                                estimatedCost
+                            );
+
+                    commentId =
+                        Number(
+                            commentResult.lastInsertRowid
+                        );
+                }
+
+                const replyResult =
+                    database
+                        .prepare(`
+                            INSERT INTO replies (
+                                comment_id,
+                                content,
+                                approved,
+                                posted
+                            )
+                            VALUES (?, ?, 0, 0)
+                        `)
+                        .run(
+                            commentId,
+                            reply
+                        );
+
+                return {
+                    commentId,
+                    replyId:
+                        Number(
+                            replyResult.lastInsertRowid
+                        )
+                };
+            })();
+
         res.json({
+            commentId:
+                saveResult.commentId,
 
-            businessId,
+            replyId:
+                saveResult.replyId,
 
-            business: business.name,
+            businessId:
+                business.id,
 
-            emoji: business.emoji,
+            business:
+                business.name,
+
+            emoji:
+                business.emoji || "🏢",
+
+            detectedAutomatically,
 
             source,
 
-            rule: ruleName,
+            rule:
+                ruleName,
+
+            confidence,
+
+            processingTime,
+
+            estimatedCost,
+
+            status:
+                "replied",
 
             reply
-
         });
-
     } catch (error) {
+        const processingTime =
+            Date.now() - startedAt;
 
-        console.error(error);
+        console.error(
+            "Reply generation error:",
+            error
+        );
 
-        res.status(500).json({
+        res
+            .status(
+                error.statusCode || 500
+            )
+            .json({
+                error:
+                    error.message ||
+                    "Unable to generate reply.",
 
-            error: "Unable to generate reply."
-
-        });
-
+                processingTime
+            });
     }
-
 });
 
 module.exports = router;

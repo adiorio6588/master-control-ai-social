@@ -662,3 +662,132 @@ textarea:focus {
         font-size: 42px;
     }
 }
+
+.sidebar-link {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1px solid rgba(255, 75, 11, 0.28);
+    border-radius: 3px;
+    background: transparent;
+    color: #d1d5db;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active-nav {
+    background: var(--orange-soft);
+    border-color: var(--orange);
+    color: white;
+}
+
+.business-manager-grid {
+    display: grid;
+    grid-template-columns: minmax(380px, 0.9fr) minmax(420px, 1.1fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.business-list-panel {
+    position: static;
+    max-height: calc(100vh - 170px);
+}
+
+.business-form-panel {
+    margin-top: 0;
+}
+
+.control-input {
+    width: 100%;
+    min-height: 48px;
+    margin-bottom: 18px;
+    padding: 0 14px;
+    color: white;
+    background: #070809;
+    border: 1px solid rgba(255, 75, 11, 0.42);
+    border-radius: 2px;
+    outline: none;
+}
+
+.control-input:focus {
+    border-color: var(--orange-2);
+    box-shadow: 0 0 0 2px rgba(255, 75, 11, 0.12);
+}
+
+.business-form-panel textarea {
+    margin-bottom: 16px;
+    min-height: 260px;
+}
+
+.business-manager-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 16px;
+    background: #08090a;
+    border: 1px solid rgba(255, 75, 11, 0.28);
+}
+
+.business-manager-item + .business-manager-item {
+    margin-top: 12px;
+}
+
+.business-manager-info {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.business-manager-emoji {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 75, 11, 0.08);
+    border: 1px solid rgba(255, 75, 11, 0.4);
+    font-size: 21px;
+}
+
+.business-manager-info strong {
+    display: block;
+    font-size: 14px;
+}
+
+.business-manager-info small {
+    display: block;
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+.business-manager-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.danger-button {
+    border-color: #ff5e5e;
+    color: #ff7777;
+}
+
+.danger-button:hover {
+    background: #ff5e5e;
+    color: #080808;
+}
+
+@media (max-width: 1050px) {
+    .business-manager-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .business-list-panel {
+        max-height: none;
+    }
+}

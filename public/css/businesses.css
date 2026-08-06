@@ -673,3 +673,219 @@ textarea:disabled {
         flex-direction: column;
     }
 }
+
+/* Final Business Manager layout fix */
+
+.business-manager-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.75fr)
+        minmax(360px, 0.85fr);
+    gap: 28px;
+    align-items: start;
+}
+
+.business-list-panel,
+.business-form-panel {
+    min-width: 0;
+}
+
+#business-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 22px;
+}
+
+.business-profile-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid rgba(255, 75, 11, 0.32);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(18, 21, 26, 0.98),
+            rgba(8, 9, 11, 0.98)
+        );
+}
+
+.business-profile-card:hover {
+    border-color: var(--mc-orange);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255, 75, 11, 0.08),
+            rgba(8, 9, 11, 0.98)
+        );
+}
+
+.business-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+}
+
+.business-card-identity {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+.business-card-emoji {
+    width: 62px;
+    height: 62px;
+    flex: 0 0 62px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 75, 11, 0.4);
+    background: var(--mc-orange-soft);
+    font-size: 30px;
+}
+
+.business-card-identity > div:last-child {
+    min-width: 0;
+}
+
+.business-card-id {
+    display: block;
+    color: var(--mc-orange);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.business-card-identity h3 {
+    margin-top: 7px;
+    color: white;
+    font-size: 26px;
+    line-height: 1.1;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+.business-card-section {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 75, 11, 0.22);
+}
+
+.business-card-label {
+    color: var(--mc-orange);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.business-card-prompt {
+    min-height: 0;
+    margin-top: 10px;
+    color: var(--mc-muted);
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.business-card-metrics {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.business-card-metric {
+    min-width: 0;
+    padding: 13px 10px;
+    border: 1px solid rgba(255, 75, 11, 0.2);
+    background: #08090a;
+    text-align: center;
+}
+
+.business-card-metric span {
+    display: block;
+    color: var(--mc-muted);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: normal;
+}
+
+.business-card-metric strong {
+    display: block;
+    margin-top: 8px;
+    color: white;
+    font-size: 20px;
+}
+
+.business-card-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 75, 11, 0.18);
+}
+
+.business-card-actions .mc-button {
+    min-width: 120px;
+}
+
+.business-form-panel {
+    position: sticky;
+    top: 24px;
+}
+
+.business-form-panel form {
+    margin-top: 20px;
+}
+
+.business-form-panel label:not(:first-of-type) {
+    margin-top: 20px;
+}
+
+.business-form-panel textarea {
+    min-height: 260px;
+}
+
+#save-business {
+    width: 100%;
+    margin-top: 20px;
+}
+
+@media (max-width: 1180px) {
+    .business-manager-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .business-form-panel {
+        position: static;
+    }
+}
+
+@media (max-width: 640px) {
+    .business-card-header {
+        flex-direction: column;
+    }
+
+    .business-card-identity {
+        align-items: flex-start;
+    }
+
+    .business-card-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .business-card-actions {
+        flex-direction: column;
+    }
+
+    .business-card-actions .mc-button {
+        width: 100%;
+    }
+}

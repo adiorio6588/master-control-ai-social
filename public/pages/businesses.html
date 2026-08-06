@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
 
@@ -8,9 +9,22 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Businesses | Master Control AI</title>
+    <title>Businesses | Master Control</title>
 
-    <link rel="stylesheet" href="/css/style.css">
+    <link
+        rel="stylesheet"
+        href="/css/design-system.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/businesses.css"
+    >
 </head>
 
 <body>
@@ -19,11 +33,17 @@
 
         <h2>Master Control</h2>
 
-        <a class="sidebar-link" href="/">
+        <a
+            class="sidebar-link"
+            href="/pages/dashboard.html"
+        >
             Dashboard
         </a>
 
-        <a class="sidebar-link" href="/pages/inbox.html">
+        <a
+            class="sidebar-link"
+            href="/pages/inbox.html"
+        >
             Social Inbox
         </a>
 
@@ -34,19 +54,31 @@
             Businesses
         </a>
 
-        <a class="sidebar-link" href="/pages/rules.html">
+        <a
+            class="sidebar-link"
+            href="/pages/rules.html"
+        >
             AI Rules
         </a>
 
-        <a class="sidebar-link" href="/pages/automation.html">
+        <a
+            class="sidebar-link"
+            href="/pages/automation.html"
+        >
             Automation
         </a>
 
-        <a class="sidebar-link" href="/pages/analytics.html">
+        <a
+            class="sidebar-link"
+            href="/pages/analytics.html"
+        >
             Analytics
         </a>
 
-        <a class="sidebar-link" href="/pages/settings.html">
+        <a
+            class="sidebar-link"
+            href="/pages/settings.html"
+        >
             Settings
         </a>
 
@@ -76,15 +108,15 @@
                 <h1>Business Manager</h1>
 
                 <p class="header-description">
-                    Add, edit, and manage the business profiles used
-                    by the reply system.
+                    Add, edit, and manage the business profiles
+                    used by the reply system.
                 </p>
 
             </div>
 
             <button
                 id="add-business"
-                class="control-button"
+                class="mc-button"
                 type="button"
             >
                 Add Business
@@ -110,7 +142,7 @@
 
                     <button
                         id="refresh-businesses"
-                        class="control-button"
+                        class="mc-button"
                         type="button"
                     >
                         Refresh
@@ -122,7 +154,7 @@
                     id="business-list"
                     class="history-list"
                 >
-                    <div class="history-empty">
+                    <div class="mc-empty">
                         Loading businesses...
                     </div>
                 </div>
@@ -142,7 +174,7 @@
 
                     <button
                         id="cancel-business"
-                        class="control-button"
+                        class="mc-button"
                         type="button"
                     >
                         Clear
@@ -193,6 +225,7 @@
 
                     <button
                         id="save-business"
+                        class="mc-button primary"
                         type="submit"
                     >
                         Save Business
@@ -211,7 +244,9 @@
 
     </main>
 
-    <script src="/js/businesses.js"></script>
+    <script src="/js/core/api.js?v=4"></script>
+    <script src="/js/businesses.js?v=4"></script>
 
 </body>
+
 </html>

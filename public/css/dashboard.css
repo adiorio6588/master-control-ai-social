@@ -281,3 +281,163 @@
         grid-template-columns: 1fr;
     }
 }
+
+.business-manager-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(420px, 1fr)
+        minmax(420px, 0.9fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.business-list-panel,
+.business-form-panel {
+    min-width: 0;
+}
+
+.business-list-panel {
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow: hidden;
+}
+
+.business-list-panel .history-list {
+    margin-top: 16px;
+    max-height: calc(100vh - 190px);
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.business-manager-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 16px;
+    border: 1px solid rgba(255, 75, 11, 0.28);
+    background: #08090a;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.business-manager-item + .business-manager-item {
+    margin-top: 12px;
+}
+
+.business-manager-item:hover {
+    border-color: var(--mc-orange);
+    background: var(--mc-orange-soft);
+    transform: translateY(-1px);
+}
+
+.business-manager-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.business-manager-emoji {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 75, 11, 0.38);
+    background: rgba(255, 75, 11, 0.06);
+    font-size: 24px;
+}
+
+.business-manager-info div {
+    min-width: 0;
+}
+
+.business-manager-info strong {
+    display: block;
+    color: white;
+    font-size: 15px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.business-manager-info small {
+    display: block;
+    margin-top: 5px;
+    color: var(--mc-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.business-manager-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.danger-button {
+    border-color: var(--mc-red);
+    color: var(--mc-red);
+}
+
+.danger-button:hover {
+    background: var(--mc-red);
+    color: black;
+}
+
+.business-form-panel form {
+    margin-top: 18px;
+}
+
+.business-form-panel label:not(:first-of-type) {
+    margin-top: 18px;
+}
+
+.business-form-panel textarea {
+    min-height: 210px;
+}
+
+#save-business {
+    width: 100%;
+    margin-top: 18px;
+}
+
+.history-error {
+    color: var(--mc-red);
+}
+
+@media (max-width: 1100px) {
+    .business-manager-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .business-list-panel {
+        position: static;
+        max-height: none;
+    }
+
+    .business-list-panel .history-list {
+        max-height: none;
+    }
+}
+
+@media (max-width: 650px) {
+    .business-manager-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .business-manager-actions {
+        width: 100%;
+    }
+
+    .business-manager-actions .control-button {
+        flex: 1;
+    }
+}

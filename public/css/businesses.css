@@ -889,3 +889,554 @@ textarea:disabled {
         width: 100%;
     }
 }
+
+/*
+====================================================
+SOCIAL PLATFORM CONNECTIONS
+====================================================
+*/
+
+.business-social-section {
+    margin-top: 28px;
+    padding-top: 26px;
+    border-top: 1px solid rgba(255, 75, 11, 0.22);
+}
+
+.business-social-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+
+/*
+====================================================
+Platform Card
+====================================================
+*/
+
+.business-social-row {
+    min-height: 72px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    padding: 14px 16px;
+
+    background: rgba(0, 0, 0, 0.24);
+
+    border: 1px solid rgba(255, 75, 11, 0.22);
+
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease;
+}
+
+.business-social-row:hover {
+    border-color: rgba(255, 75, 11, 0.55);
+    background: rgba(255, 75, 11, 0.035);
+}
+
+
+/*
+====================================================
+Platform Identity
+====================================================
+*/
+
+.business-social-platform {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+}
+
+.business-social-icon {
+    width: 34px;
+    height: 34px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #090a0c;
+
+    border: 1px solid rgba(255, 75, 11, 0.4);
+
+    color: #ffffff;
+
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.business-social-platform > div {
+    min-width: 0;
+}
+
+.business-social-platform strong {
+    display: block;
+
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    letter-spacing: 0.04em;
+}
+
+.business-social-platform small {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #858b95;
+
+    font-size: 11px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/*
+====================================================
+Connection Status
+====================================================
+*/
+
+.business-social-status {
+    flex-shrink: 0;
+
+    padding: 6px 8px;
+
+    border: 1px solid #454a52;
+
+    color: #8f959e;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+}
+
+.business-social-status.not-connected {
+    border-color: #454a52;
+    color: #8f959e;
+}
+
+.business-social-status.connected {
+    border-color: rgba(74, 222, 128, 0.55);
+
+    background: rgba(74, 222, 128, 0.06);
+
+    color: #4ade80;
+}
+
+
+/*
+====================================================
+Responsive
+====================================================
+*/
+
+@media (max-width: 900px) {
+
+    .business-social-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 520px) {
+
+    .business-social-row {
+        min-height: 64px;
+        padding: 12px;
+    }
+
+    .business-social-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .business-social-status {
+        font-size: 8px;
+    }
+
+}
+
+/*
+====================================================
+SOCIAL PLATFORM SPACING FIX
+====================================================
+*/
+
+.business-profile-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.business-card-section {
+    width: 100%;
+    min-width: 0;
+}
+
+.business-social-section {
+    width: 100%;
+    min-width: 0;
+}
+
+.business-social-grid {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+
+    min-width: 0;
+}
+
+.business-social-row {
+    width: 100%;
+    min-width: 0;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 14px 16px;
+}
+
+.business-social-platform {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+}
+
+.business-social-platform > div {
+    min-width: 0;
+}
+
+.business-social-platform strong {
+    display: block;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.business-social-status {
+    position: static;
+
+    justify-self: end;
+
+    flex-shrink: 0;
+
+    white-space: nowrap;
+
+    font-size: 8px;
+
+    padding: 6px 8px;
+}
+
+
+/*
+====================================================
+Responsive Social Platforms
+====================================================
+*/
+
+@media (max-width: 900px) {
+
+    .business-social-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+/*
+====================================================
+WIDER BUSINESS MANAGER
+====================================================
+*/
+
+/* Make the Registered Businesses panel wider */
+.business-list-panel {
+    width: 100%;
+    max-width: 1050px;
+}
+
+/* Allow the manager area to use more screen space */
+.business-manager-grid {
+    width: 100%;
+    max-width: 1200px;
+}
+
+/* Business cards fill the wider panel */
+.business-profile-card {
+    width: 100%;
+    max-width: none;
+}
+
+/* Give the social platforms more room */
+.business-social-grid {
+    width: 100%;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+}
+
+/* Platform names can display normally */
+.business-social-platform strong {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+
+/*
+====================================================
+BUSINESS MANAGER WIDTH FIX
+====================================================
+*/
+
+/* Let the page use the available space to the right */
+.content {
+    width: calc(100% - 250px);
+    max-width: none;
+}
+
+/* Remove the old two-column constraint */
+.business-manager-grid {
+    width: 100%;
+    max-width: none;
+
+    display: block;
+
+    grid-template-columns: none;
+}
+
+/* Make Registered Businesses substantially wider */
+.business-list-panel {
+    width: 100%;
+    max-width: 1180px;
+}
+
+/* Business cards should use all available panel width */
+.business-profile-card {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+/* Keep social accounts in two equal columns */
+.business-social-grid {
+    width: 100%;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+}
+
+/* Prevent platform names from getting cut off */
+.business-social-platform {
+    min-width: 140px;
+}
+
+.business-social-platform strong {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: nowrap;
+}
+
+/* Keep status badge on the right */
+.business-social-row {
+    grid-template-columns:
+        minmax(160px, 1fr)
+        auto;
+}
+
+.business-social-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.social-account-button {
+    min-width: 82px;
+    padding: 7px 10px;
+    font-size: 9px;
+}
+
+/*
+====================================================
+SOCIAL CONNECT MODAL
+====================================================
+*/
+
+.social-connect-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.social-connect-heading h3 {
+    margin-top: 8px;
+    margin-bottom: 6px;
+
+    color: #ffffff;
+
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.social-connect-heading p {
+    color: #a7adb7;
+
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+
+/*
+====================================================
+Connection Information
+====================================================
+*/
+
+.social-connect-info {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+.social-connect-info > div {
+    padding: 16px;
+
+    background: #090a0c;
+
+    border:
+        1px solid
+        rgba(255, 75, 11, 0.25);
+}
+
+.social-connect-info span {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #ff4b0b;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: 0.14em;
+
+    text-transform: uppercase;
+}
+
+.social-connect-info strong {
+    display: block;
+
+    color: #ffffff;
+
+    font-size: 13px;
+}
+
+
+/*
+====================================================
+Connection Status
+====================================================
+*/
+
+.connection-offline {
+    color: #9ca3ad !important;
+}
+
+.connection-online {
+    color: #4ade80 !important;
+}
+
+
+/*
+====================================================
+Connection Message
+====================================================
+*/
+
+.social-connect-message {
+    padding: 16px;
+
+    color: #9ca3ad;
+
+    background:
+        rgba(255, 75, 11, 0.03);
+
+    border-left:
+        2px solid #ff4b0b;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+}
+
+
+/*
+====================================================
+Connection Actions
+====================================================
+*/
+
+.social-connect-actions {
+    width: 100%;
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+}
+
+
+/*
+====================================================
+Responsive
+====================================================
+*/
+
+@media (max-width: 700px) {
+
+    .social-connect-info {
+        grid-template-columns: 1fr;
+    }
+
+}

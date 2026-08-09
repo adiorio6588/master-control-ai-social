@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -9,22 +9,13 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Businesses | Master Control</title>
+    <title>Businesses | Master Control AI</title>
 
-    <link
-        rel="stylesheet"
-        href="/css/design-system.css"
-    >
+    <link rel="stylesheet" href="/css/design-system.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/businesses.css?v=44">
+    <link rel="stylesheet" href="/css/modal.css">
 
-    <link
-        rel="stylesheet"
-        href="/css/style.css"
-    >
-
-    <link
-        rel="stylesheet"
-        href="/css/businesses.css"
-    >
 </head>
 
 <body>
@@ -33,10 +24,7 @@
 
         <h2>Master Control</h2>
 
-        <a
-            class="sidebar-link"
-            href="/pages/dashboard.html"
-        >
+        <a class="sidebar-link" href="/">
             Dashboard
         </a>
 
@@ -87,8 +75,11 @@
             <span class="online-light"></span>
 
             <div>
+
                 <strong>System Online</strong>
+
                 <p>Business control</p>
+
             </div>
 
         </div>
@@ -105,18 +96,20 @@
                     MASTER CONTROL // BUSINESS DATABASE
                 </p>
 
-                <h1>Business Manager</h1>
+                <h1>
+                    Business Manager
+                </h1>
 
                 <p class="header-description">
-                    Add, edit, and manage the business profiles
-                    used by the reply system.
+                    Add, edit and manage every business connected
+                    to Master Control AI.
                 </p>
 
             </div>
 
             <button
                 id="add-business"
-                class="mc-button"
+                class="control-button"
                 type="button"
             >
                 Add Business
@@ -126,7 +119,9 @@
 
         <section class="business-manager-grid">
 
-            <section class="activity-panel business-list-panel">
+            <section
+                class="activity-panel business-list-panel"
+            >
 
                 <div class="activity-header">
 
@@ -136,13 +131,15 @@
                             BUSINESS PROFILES
                         </span>
 
-                        <h2>Registered Businesses</h2>
+                        <h2>
+                            Registered Businesses
+                        </h2>
 
                     </div>
 
                     <button
                         id="refresh-businesses"
-                        class="mc-button"
+                        class="control-button"
                         type="button"
                     >
                         Refresh
@@ -154,89 +151,14 @@
                     id="business-list"
                     class="history-list"
                 >
-                    <div class="mc-empty">
+
+                    <div class="history-empty">
+
                         Loading businesses...
+
                     </div>
-                </div>
-
-            </section>
-
-            <section
-                id="business-form-panel"
-                class="card business-form-panel"
-            >
-
-                <div class="reply-card-header">
-
-                    <h3 id="business-form-title">
-                        Add Business
-                    </h3>
-
-                    <button
-                        id="cancel-business"
-                        class="mc-button"
-                        type="button"
-                    >
-                        Clear
-                    </button>
 
                 </div>
-
-                <form id="business-form">
-
-                    <input
-                        id="business-id"
-                        type="hidden"
-                    >
-
-                    <label for="business-name">
-                        Business name
-                    </label>
-
-                    <input
-                        id="business-name"
-                        class="control-input"
-                        type="text"
-                        placeholder="Example: Benditas Foods"
-                        required
-                    >
-
-                    <label for="business-emoji">
-                        Emoji or symbol
-                    </label>
-
-                    <input
-                        id="business-emoji"
-                        class="control-input"
-                        type="text"
-                        maxlength="10"
-                        placeholder="🏢"
-                    >
-
-                    <label for="business-prompt">
-                        AI personality prompt
-                    </label>
-
-                    <textarea
-                        id="business-prompt"
-                        placeholder="Describe how the assistant should represent this business..."
-                        required
-                    ></textarea>
-
-                    <button
-                        id="save-business"
-                        class="mc-button primary"
-                        type="submit"
-                    >
-                        Save Business
-                    </button>
-
-                    <p
-                        id="business-form-status"
-                        class="reply-status"
-                    ></p>
-
-                </form>
 
             </section>
 
@@ -244,9 +166,97 @@
 
     </main>
 
-    <script src="/js/core/api.js?v=4"></script>
-    <script src="/js/businesses.js?v=4"></script>
+    <!-- ===================================================== -->
+    <!-- Business Form Template (Hidden)                       -->
+    <!-- ===================================================== -->
+
+    <section
+        id="business-form-template"
+        class="business-form-panel"
+        style="display:none;"
+    >
+
+        <div class="reply-card-header">
+
+            <button
+                id="cancel-business"
+                class="control-button"
+                type="button"
+            >
+                Cancel
+            </button>
+
+        </div>
+
+        <form id="business-form">
+
+            <input
+                id="business-id"
+                type="hidden"
+            >
+
+            <label
+                for="business-name"
+            >
+                Business Name
+            </label>
+
+            <input
+                id="business-name"
+                class="control-input"
+                type="text"
+                placeholder="Example: Benditas Foods"
+                required
+            >
+
+            <label
+                for="business-emoji"
+            >
+                Emoji
+            </label>
+
+            <input
+                id="business-emoji"
+                class="control-input"
+                type="text"
+                maxlength="10"
+                placeholder="🏢"
+            >
+
+            <label
+                for="business-prompt"
+            >
+                AI Personality Prompt
+            </label>
+
+            <textarea
+                id="business-prompt"
+                class="control-textarea"
+                rows="8"
+                placeholder="Describe how Master Control should represent this business..."
+                required
+            ></textarea>
+
+            <button
+                id="save-business"
+                class="mc-button primary"
+                type="submit"
+            >
+                Save Business
+            </button>
+
+            <p
+                id="business-form-status"
+                class="reply-status"
+            ></p>
+
+        </form>
+
+    </section>
+
+    <script src="/js/core/api.js?v=36"></script>
+    <script src="/js/components/modal.js?v=35"></script>
+    <script src="/js/businesses.js?v=43"></script>
 
 </body>
-
 </html>

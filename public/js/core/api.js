@@ -1,26 +1,35 @@
 window.MasterControlAPI = (() => {
 
-    async function request(endpoint, options = {}) {
-
+    async function request(
+        endpoint,
+        options = {}
+    ) {
         const config = {
             ...options,
             headers: {
                 ...(options.body
                     ? {
-                        "Content-Type": "application/json"
+                        "Content-Type":
+                            "application/json"
                     }
                     : {}),
                 ...(options.headers || {})
             }
         };
 
-        const response = await fetch(endpoint, config);
+        const response =
+            await fetch(
+                endpoint,
+                config
+            );
 
         let data = {};
 
         try {
-            data = await response.json();
-        } catch {
+            data =
+                await response.json();
+        }
+        catch {
             data = {};
         }
 
@@ -34,130 +43,350 @@ window.MasterControlAPI = (() => {
         return data;
     }
 
-    // --------------------------
-    // Dashboard
-    // --------------------------
 
-    async function getDashboard() {
-        return request("/api/dashboard");
+    /*
+    ====================================================
+    Dashboard
+    ====================================================
+    */
+
+    function getDashboard() {
+        return request(
+            "/api/dashboard"
+        );
     }
 
-    // --------------------------
-    // Businesses
-    // --------------------------
 
-    async function getBusinesses() {
-        return request("/api/businesses");
+    /*
+    ====================================================
+    Businesses
+    ====================================================
+    */
+
+    function getBusinesses() {
+        return request(
+            "/api/businesses"
+        );
     }
 
-    async function createBusiness(payload) {
-        return request("/api/businesses", {
-            method: "POST",
-            body: JSON.stringify(payload)
-        });
+    function createBusiness(
+        payload
+    ) {
+        return request(
+            "/api/businesses",
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
     }
 
-    async function updateBusiness(id, payload) {
-        return request(`/api/businesses/${id}`, {
-            method: "PUT",
-            body: JSON.stringify(payload)
-        });
+    function updateBusiness(
+        businessId,
+        payload
+    ) {
+        return request(
+            `/api/businesses/${businessId}`,
+            {
+                method: "PUT",
+
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
     }
 
-    async function deleteBusiness(id) {
-        return request(`/api/businesses/${id}`, {
-            method: "DELETE"
-        });
+    function deleteBusiness(
+        businessId
+    ) {
+        return request(
+            `/api/businesses/${businessId}`,
+            {
+                method: "DELETE"
+            }
+        );
     }
 
-    // --------------------------
-    // Comments
-    // --------------------------
 
-    async function getComments() {
-        return request("/api/comments");
+    /*
+    ====================================================
+    Social Accounts
+    ====================================================
+    */
+
+    function getSocialAccounts(
+        businessId = null
+    ) {
+        if (businessId) {
+            return request(
+                `/api/social-accounts?businessId=${encodeURIComponent(
+                    businessId
+                )}`
+            );
+        }
+
+        return request(
+            "/api/social-accounts"
+        );
     }
 
-    async function createComment(payload) {
-        return request("/api/comments", {
-            method: "POST",
-            body: JSON.stringify(payload)
-        });
+    function getSocialAccount(
+        accountId
+    ) {
+        return request(
+            `/api/social-accounts/${accountId}`
+        );
     }
 
-    async function deleteComment(id) {
-        return request(`/api/comments/${id}`, {
-            method: "DELETE"
-        });
+    function updateSocialAccount(
+        accountId,
+        payload
+    ) {
+        return request(
+            `/api/social-accounts/${accountId}`,
+            {
+                method: "PUT",
+
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
     }
 
-    async function updateCommentStatus(id, status) {
-        return request(`/api/comments/${id}/status`, {
-            method: "PATCH",
-            body: JSON.stringify({
-                status
-            })
-        });
+    function updateBusinessSocialAccount(
+        businessId,
+        platform,
+        payload
+    ) {
+        return request(
+            `/api/social-accounts/business/${businessId}/${encodeURIComponent(
+                platform
+            )}`,
+            {
+                method: "PUT",
+
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
     }
 
-    async function saveReply(id, reply) {
-        return request(`/api/comments/${id}/reply`, {
-            method: "POST",
-            body: JSON.stringify({
-                reply
-            })
-        });
+
+    /*
+    ====================================================
+    Comments
+    ====================================================
+    */
+
+    function getComments(
+        filters = {}
+    ) {
+        const params =
+            new URLSearchParams();
+
+        if (filters.businessId) {
+            params.set(
+                "businessId",
+                filters.businessId
+            );
+        }
+
+        if (filters.platform) {
+            params.set(
+                "platform",
+                filters.platform
+            );
+        }
+
+        if (filters.status) {
+            params.set(
+                "status",
+                filters.status
+            );
+        }
+
+        const query =
+            params.toString();
+
+        return request(
+            query
+                ? `/api/comments?${query}`
+                : "/api/comments"
+        );
     }
 
-    // --------------------------
-    // AI
-    // --------------------------
+    function createComment(
+        payload
+    ) {
+        return request(
+            "/api/comments",
+            {
+                method: "POST",
 
-    async function generateReply(payload) {
-        return request("/api/reply", {
-            method: "POST",
-            body: JSON.stringify(payload)
-        });
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
     }
 
-    // --------------------------
-    // Rules
-    // --------------------------
-
-    async function getRules() {
-        return request("/api/rules");
+    function deleteComment(
+        commentId
+    ) {
+        return request(
+            `/api/comments/${commentId}`,
+            {
+                method: "DELETE"
+            }
+        );
     }
 
-    async function createRule(payload) {
-        return request("/api/rules", {
-            method: "POST",
-            body: JSON.stringify(payload)
-        });
+    function updateCommentStatus(
+        commentId,
+        status
+    ) {
+        return request(
+            `/api/comments/${commentId}/status`,
+            {
+                method: "PATCH",
+
+                body:
+                    JSON.stringify({
+                        status
+                    })
+            }
+        );
     }
 
-    async function updateRule(id, payload) {
-        return request(`/api/rules/${id}`, {
-            method: "PUT",
-            body: JSON.stringify(payload)
-        });
+    function saveReply(
+        commentId,
+        reply
+    ) {
+        return request(
+            `/api/comments/${commentId}/reply`,
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify({
+                        reply
+                    })
+            }
+        );
     }
 
-    async function deleteRule(id) {
-        return request(`/api/rules/${id}`, {
-            method: "DELETE"
-        });
+
+    /*
+    ====================================================
+    AI
+    ====================================================
+    */
+
+    function generateReply(
+        payload
+    ) {
+        return request(
+            "/api/reply",
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
     }
 
-    // --------------------------
-    // History
-    // --------------------------
 
-    async function getHistory() {
-        return request("/api/history");
+    /*
+    ====================================================
+    Rules
+    ====================================================
+    */
+
+    function getRules() {
+        return request(
+            "/api/rules"
+        );
     }
+
+    function createRule(
+        payload
+    ) {
+        return request(
+            "/api/rules",
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
+    }
+
+    function updateRule(
+        ruleId,
+        payload
+    ) {
+        return request(
+            `/api/rules/${ruleId}`,
+            {
+                method: "PUT",
+
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
+    }
+
+    function deleteRule(
+        ruleId
+    ) {
+        return request(
+            `/api/rules/${ruleId}`,
+            {
+                method: "DELETE"
+            }
+        );
+    }
+
+
+    /*
+    ====================================================
+    History
+    ====================================================
+    */
+
+    function getHistory() {
+        return request(
+            "/api/history"
+        );
+    }
+
+
+    /*
+    ====================================================
+    Public API
+    ====================================================
+    */
 
     return {
-
         request,
 
         getDashboard,
@@ -166,6 +395,11 @@ window.MasterControlAPI = (() => {
         createBusiness,
         updateBusiness,
         deleteBusiness,
+
+        getSocialAccounts,
+        getSocialAccount,
+        updateSocialAccount,
+        updateBusinessSocialAccount,
 
         getComments,
         createComment,
@@ -181,7 +415,6 @@ window.MasterControlAPI = (() => {
         deleteRule,
 
         getHistory
-
     };
 
 })();

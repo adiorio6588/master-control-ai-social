@@ -11,7 +11,7 @@
     >
 
     <title>
-        Login | Master Control
+        Create Account | Master Control
     </title>
 
     <link
@@ -28,10 +28,6 @@
 
         <section class="login-command-panel">
 
-
-            <!-- ==========================================
-                 LEFT SIDE
-            =========================================== -->
 
             <aside class="login-brand-panel">
 
@@ -72,7 +68,7 @@
                             </strong>
 
                             <p>
-                                Authentication Gateway
+                                Account Provisioning
                             </p>
 
                         </div>
@@ -84,40 +80,54 @@
             </aside>
 
 
-            <!-- ==========================================
-                 LOGIN SIDE
-            =========================================== -->
-
             <section class="login-form-panel">
 
                 <div class="login-system-label">
-                    MASTER CONTROL // SECURE ACCESS
+                    MASTER CONTROL // NEW ACCOUNT
                 </div>
 
 
                 <div class="login-heading">
 
                     <h2>
-                        System Login
+                        Create Account
                     </h2>
 
                     <p>
-                        Sign in to your Master Control account.
+                        Create your Master Control workspace.
                     </p>
 
                 </div>
 
 
-                <form id="login-form">
+                <form id="register-form">
 
                     <div class="login-field">
 
-                        <label for="login-email">
+                        <label for="register-name">
+                            Your Name
+                        </label>
+
+                        <input
+                            id="register-name"
+                            name="displayName"
+                            type="text"
+                            autocomplete="name"
+                            placeholder="Your name"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="login-field">
+
+                        <label for="register-email">
                             Email
                         </label>
 
                         <input
-                            id="login-email"
+                            id="register-email"
                             name="email"
                             type="email"
                             autocomplete="email"
@@ -130,16 +140,35 @@
 
                     <div class="login-field">
 
-                        <label for="login-password">
+                        <label for="register-organization">
+                            Organization / Business Name
+                        </label>
+
+                        <input
+                            id="register-organization"
+                            name="organizationName"
+                            type="text"
+                            autocomplete="organization"
+                            placeholder="Example: Acme Foods"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="login-field">
+
+                        <label for="register-password">
                             Password
                         </label>
 
                         <input
-                            id="login-password"
+                            id="register-password"
                             name="password"
                             type="password"
-                            autocomplete="current-password"
-                            placeholder="Enter your password"
+                            autocomplete="new-password"
+                            placeholder="At least 8 characters"
+                            minlength="8"
                             required
                         >
 
@@ -147,16 +176,16 @@
 
 
                     <button
-                        id="login-button"
+                        id="register-button"
                         class="login-button"
                         type="submit"
                     >
-                        Sign In
+                        Create Account
                     </button>
 
 
                     <p
-                        id="login-message"
+                        id="register-message"
                         class="login-message"
                         aria-live="polite"
                     ></p>
@@ -167,12 +196,12 @@
                 <div class="login-access-footer">
 
                     <span>
-                        SECURE AUTHENTICATION
+                        ALREADY HAVE AN ACCOUNT?
                     </span>
 
-                    <span>
-                        MASTER CONTROL
-                    </span>
+                    <a href="/login">
+                        SIGN IN
+                    </a>
 
                 </div>
 
@@ -184,7 +213,7 @@
     </main>
 
 
-    <script src="/js/login.js"></script>
+    <script src="/js/register.js"></script>
 
 </body>
 

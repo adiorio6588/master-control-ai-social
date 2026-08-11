@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -8,84 +10,203 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Rules Manager | Master Control</title>
+    <title>
+        Rules Manager | Master Control
+    </title>
 
-    <link rel="stylesheet" href="/css/design-system.css">
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/rules.css">
-    
+    <link
+        rel="stylesheet"
+        href="/css/design-system.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/rules.css"
+    >
+
 </head>
+
 
 <body>
 
     <aside class="sidebar">
 
-        <div class="system-number">06</div>
+        <h2>
+            Master Control
+        </h2>
 
-        <h1>Master Control</h1>
 
-        <nav>
-            <a href="/">Dashboard</a>
-            <a href="/rules.html" class="active">Rules Manager</a>
-        </nav>
+        <button
+            type="button"
+            onclick="location.href='/dashboard'"
+        >
+            Dashboard
+        </button>
 
-        <div class="system-status">
-            <span></span>
+
+        <button
+            type="button"
+            onclick="location.href='/inbox'"
+        >
+            Social Inbox
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/businesses'"
+        >
+            Businesses
+        </button>
+
+
+        <button
+            type="button"
+            class="active-nav"
+        >
+            Rules
+        </button>
+
+
+        <button type="button">
+            Analytics
+        </button>
+
+
+        <button type="button">
+            Automation
+        </button>
+
+
+        <button type="button">
+            Settings
+        </button>
+
+
+        <button
+            class="sidebar-logout"
+            type="button"
+            onclick="MasterControlAuth.logout()"
+        >
+            LOGOUT
+        </button>
+
+
+        <div class="sidebar-system-status">
+
+            <span class="online-light"></span>
 
             <div>
-                <strong>System Online</strong>
-                <small>Rules engine active</small>
+
+                <strong>
+                    System Online
+                </strong>
+
+                <p>
+                    Rules engine active
+                </p>
+
             </div>
+
         </div>
 
     </aside>
+
 
     <main class="content">
 
         <header class="page-header">
 
             <div>
-                <p>MASTER CONTROL // AUTOMATION</p>
-                <h2>Rules Manager</h2>
+
+                <p>
+                    MASTER CONTROL // AUTOMATION
+                </p>
+
+                <h2>
+                    Rules Manager
+                </h2>
 
                 <span>
                     Create automatic replies that run before the paid AI service.
                 </span>
+
             </div>
 
-            <button id="new-rule-button" class="primary-button">
+
+            <button
+                id="new-rule-button"
+                class="primary-button"
+                type="button"
+            >
                 + New Rule
             </button>
 
         </header>
 
+
         <section class="toolbar">
 
             <div class="field">
+
                 <label for="business-filter">
                     Business
                 </label>
 
                 <select id="business-filter">
-                    <option value="">All businesses</option>
+
+                    <option value="">
+                        All businesses
+                    </option>
+
                 </select>
+
             </div>
 
-            <div class="toolbar-stat">
-                <span>Rules Loaded</span>
-                <strong id="rule-count">0</strong>
-            </div>
 
             <div class="toolbar-stat">
-                <span>Enabled</span>
-                <strong id="enabled-count">0</strong>
+
+                <span>
+                    Rules Loaded
+                </span>
+
+                <strong id="rule-count">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="toolbar-stat">
+
+                <span>
+                    Enabled
+                </span>
+
+                <strong id="enabled-count">
+                    0
+                </strong>
+
             </div>
 
         </section>
 
-        <section id="message-box" class="message-box hidden"></section>
 
-        <section id="rules-list" class="rules-list">
+        <section
+            id="message-box"
+            class="message-box hidden"
+        ></section>
+
+
+        <section
+            id="rules-list"
+            class="rules-list"
+        >
 
             <div class="empty-state">
                 Loading automatic reply rules...
@@ -95,18 +216,38 @@
 
     </main>
 
-    <div id="rule-modal" class="modal hidden">
 
-        <div class="modal-backdrop" id="modal-backdrop"></div>
+    <!-- ===================================================== -->
+    <!-- Rule Modal                                             -->
+    <!-- ===================================================== -->
+
+    <div
+        id="rule-modal"
+        class="modal hidden"
+    >
+
+        <div
+            class="modal-backdrop"
+            id="modal-backdrop"
+        ></div>
+
 
         <section class="modal-panel">
 
             <div class="modal-header">
 
                 <div>
-                    <p>RULE CONFIGURATION</p>
-                    <h2 id="modal-title">Create Rule</h2>
+
+                    <p>
+                        RULE CONFIGURATION
+                    </p>
+
+                    <h2 id="modal-title">
+                        Create Rule
+                    </h2>
+
                 </div>
+
 
                 <button
                     id="close-modal-button"
@@ -118,21 +259,37 @@
 
             </div>
 
+
             <form id="rule-form">
 
-                <input id="rule-id" type="hidden">
+                <input
+                    id="rule-id"
+                    type="hidden"
+                >
+
 
                 <div class="field">
+
                     <label for="rule-business">
                         Business
                     </label>
 
-                    <select id="rule-business" required>
-                        <option value="">Select a business</option>
+                    <select
+                        id="rule-business"
+                        required
+                    >
+
+                        <option value="">
+                            Select a business
+                        </option>
+
                     </select>
+
                 </div>
 
+
                 <div class="field">
+
                     <label for="rule-name">
                         Rule Name
                     </label>
@@ -143,9 +300,12 @@
                         placeholder="Example: Delivery"
                         required
                     >
+
                 </div>
 
+
                 <div class="field">
+
                     <label for="rule-keywords">
                         Keywords
                     </label>
@@ -160,9 +320,12 @@
                     <small>
                         Separate each keyword or phrase with a comma.
                     </small>
+
                 </div>
 
+
                 <div class="field">
+
                     <label for="rule-reply">
                         Automatic Reply
                     </label>
@@ -172,7 +335,9 @@
                         placeholder="Write the reply that should be sent when this rule matches..."
                         required
                     ></textarea>
+
                 </div>
+
 
                 <label class="checkbox-row">
 
@@ -182,9 +347,12 @@
                         checked
                     >
 
-                    <span>Rule enabled</span>
+                    <span>
+                        Rule enabled
+                    </span>
 
                 </label>
+
 
                 <div class="form-actions">
 
@@ -195,6 +363,7 @@
                     >
                         Cancel
                     </button>
+
 
                     <button
                         id="save-rule-button"
@@ -212,8 +381,14 @@
 
     </div>
 
+    <script src="/js/core/auth.js?v=1"></script>
     <script src="/js/core/api.js?v=50"></script>
     <script src="/js/rules.js"></script>
 
+    <script>
+        MasterControlAuth.requireAuth();
+    </script>
+
 </body>
+
 </html>

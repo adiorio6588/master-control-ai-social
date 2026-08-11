@@ -10,47 +10,92 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Master Control | Social Inbox</title>
+    <title>
+        Master Control | Social Inbox
+    </title>
 
-    <link rel="stylesheet" href="/css/design-system.css">
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/inbox.css">
-    
+    <link
+        rel="stylesheet"
+        href="/css/design-system.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/inbox.css"
+    >
+
 </head>
+
 
 <body>
 
     <aside class="sidebar">
 
-        <h2>Master Control</h2>
+        <h2>
+            Master Control
+        </h2>
 
-        <button onclick="location.href='index.html'">
+
+        <button
+            type="button"
+            onclick="location.href='/dashboard'"
+        >
             Dashboard
         </button>
 
-        <button class="active-nav">
+
+        <button
+            type="button"
+            class="active-nav"
+        >
             Social Inbox
         </button>
 
-        <button onclick="location.href='businesses.html'">
+
+        <button
+            type="button"
+            onclick="location.href='/businesses'"
+        >
             Businesses
         </button>
 
-        <button onclick="location.href='rules.html'">
+
+        <button
+            type="button"
+            onclick="location.href='/rules'"
+        >
             Rules
         </button>
 
-        <button>
+
+        <button type="button">
             Analytics
         </button>
 
-        <button>
+
+        <button type="button">
             Automation
         </button>
 
-        <button>
+
+        <button type="button">
             Settings
         </button>
+
+
+        <button
+            class="sidebar-logout"
+            type="button"
+            onclick="MasterControlAuth.logout()"
+        >
+            LOGOUT
+        </button>
+
 
         <div class="sidebar-system-status">
 
@@ -58,15 +103,20 @@
 
             <div>
 
-                <strong>System Online</strong>
+                <strong>
+                    System Online
+                </strong>
 
-                <p>Version 0.6</p>
+                <p>
+                    Version 0.6
+                </p>
 
             </div>
 
         </div>
 
     </aside>
+
 
     <main class="content">
 
@@ -75,23 +125,22 @@
             <div>
 
                 <p class="system-label">
-
                     MASTER CONTROL // SOCIAL COMMAND
-
                 </p>
 
-                <h1>Social Inbox</h1>
+                <h1>
+                    Social Inbox
+                </h1>
 
                 <p class="header-description">
-
                     Review incoming comments, generate AI responses,
                     approve replies, and monitor activity from one place.
-
                 </p>
 
             </div>
 
         </header>
+
 
         <div class="inbox-layout">
 
@@ -99,63 +148,58 @@
 
                 <div class="panel-header">
 
-                    <h2>Pending Comments</h2>
+                    <h2>
+                        Pending Comments
+                    </h2>
 
                     <span class="count-badge">
-
                         0
-
                     </span>
 
                 </div>
 
+
                 <div class="empty-state">
 
                     <div class="empty-icon">
-
                         💬
-
                     </div>
 
                     <h3>
-
                         No Comments Yet
-
                     </h3>
 
                     <p>
-
                         Facebook, Instagram, TikTok and YouTube
                         comments will appear here.
-
                     </p>
 
                 </div>
 
             </section>
 
+
             <section class="details-panel">
 
                 <div class="panel-header">
 
-                    <h2>AI Assistant</h2>
+                    <h2>
+                        AI Assistant
+                    </h2>
 
                 </div>
+
 
                 <div class="placeholder-card">
 
                     <h3>
-
                         Waiting for a Comment
-
                     </h3>
 
                     <p>
-
                         Select a customer comment to view
                         the suggested business, matched rule,
                         AI response, and approval options.
-
                     </p>
 
                 </div>
@@ -166,8 +210,13 @@
 
     </main>
 
+    <script src="/js/core/auth.js?v=1"></script>
     <script src="/js/core/api.js?v=50"></script>
     <script src="/js/inbox.js"></script>
+
+    <script>
+        MasterControlAuth.requireAuth();
+    </script>
 
 </body>
 

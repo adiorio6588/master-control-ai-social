@@ -1,10 +1,13 @@
 require("dotenv").config();
 
+
 const express =
     require("express");
 
+
 const cors =
     require("cors");
+
 
 const path =
     require("path");
@@ -39,23 +42,30 @@ ROUTES
 const authRoutes =
     require("./routes/auth");
 
+
 const aiRoutes =
     require("./routes/ai");
+
 
 const businessRoutes =
     require("./routes/businesses");
 
+
 const commentsRoutes =
     require("./routes/comments");
+
 
 const historyRoutes =
     require("./routes/history");
 
+
 const rulesRoutes =
     require("./routes/rules");
 
+
 const dashboardRoutes =
     require("./routes/dashboard");
+
 
 const socialAccountRoutes =
     require("./routes/socialAccounts");
@@ -153,15 +163,13 @@ app.get(
 AUTH ROUTES
 ====================================================
 
-These must be registered BEFORE the global
-authentication middleware.
-
 Public:
 
 POST /api/auth/register
 POST /api/auth/login
 
-/auth/me uses its own auth middleware internally.
+GET /api/auth/me
+uses auth middleware inside routes/auth.js
 ====================================================
 */
 
@@ -176,15 +184,15 @@ app.use(
 AUTHENTICATED API
 ====================================================
 
-Everything registered after this point requires:
+Everything registered below requires:
 
 Authorization: Bearer <token>
 
-authMiddleware reads organizationId from the
-signed JWT.
+The JWT determines:
 
-We are intentionally NOT using the old
-X-Organization-ID development middleware here.
+req.user
+req.organizationId
+req.organizationRole
 ====================================================
 */
 
@@ -288,6 +296,40 @@ CLEAN PAGE ROUTES
 */
 
 app.get(
+    "/login",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "pages",
+                "login.html"
+            )
+        );
+
+    }
+);
+
+
+app.get(
+    "/register",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "pages",
+                "register.html"
+            )
+        );
+
+    }
+);
+
+
+app.get(
     "/dashboard",
     (req, res) => {
 
@@ -375,22 +417,6 @@ app.use(
     }
 );
 
-app.get(
-    "/login",
-    (req, res) => {
-
-        res.sendFile(
-            path.join(
-                __dirname,
-                "public",
-                "pages",
-                "login.html"
-            )
-        );
-
-    }
-);
-
 
 /*
 ====================================================
@@ -472,6 +498,14 @@ app.listen(
         );
 
         console.log(
+            ` Login: http://localhost:${PORT}/login`
+        );
+
+        console.log(
+            ` Register: http://localhost:${PORT}/register`
+        );
+
+        console.log(
             ` Dashboard: http://localhost:${PORT}/dashboard`
         );
 
@@ -484,19 +518,23 @@ app.listen(
         );
 
         console.log(
+            ` Rules: http://localhost:${PORT}/rules`
+        );
+
+        console.log(
             ` API Status: http://localhost:${PORT}/api/status`
         );
 
         console.log(
-            ` Register: POST http://localhost:${PORT}/api/auth/register`
+            ` Register API: POST http://localhost:${PORT}/api/auth/register`
         );
 
         console.log(
-            ` Login: POST http://localhost:${PORT}/api/auth/login`
+            ` Login API: POST http://localhost:${PORT}/api/auth/login`
         );
 
         console.log(
-            ` Account: GET http://localhost:${PORT}/api/auth/me`
+            ` Account API: GET http://localhost:${PORT}/api/auth/me`
         );
 
         console.log(

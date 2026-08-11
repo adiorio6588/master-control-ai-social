@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -8,19 +10,36 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Master Control | Dashboard</title>
+    <title>
+        Master Control | Dashboard
+    </title>
 
-    <link rel="stylesheet" href="/css/design-system.css">
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
+    <link
+        rel="stylesheet"
+        href="/css/design-system.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/dashboard.css"
+    >
 
 </head>
+
 
 <body>
 
     <aside class="sidebar">
 
-        <h2>Master Control</h2>
+        <h2>
+            Master Control
+        </h2>
+
 
         <button
             type="button"
@@ -29,68 +48,97 @@
             Dashboard
         </button>
 
+
         <button
             type="button"
-            onclick="location.href='inbox.html'"
+            onclick="location.href='/inbox'"
         >
             Social Inbox
         </button>
 
+
         <button
             type="button"
-            onclick="location.href='businesses.html'"
+            onclick="location.href='/businesses'"
         >
             Businesses
         </button>
 
+
         <button
             type="button"
-            onclick="location.href='rules.html'"
+            onclick="location.href='/rules'"
         >
             Rules
         </button>
+
 
         <button type="button">
             Analytics
         </button>
 
+
         <button type="button">
             Automation
         </button>
 
+
         <button type="button">
             Settings
         </button>
+
+
+        <button
+            class="sidebar-logout"
+            type="button"
+            onclick="MasterControlAuth.logout()"
+        >
+            LOGOUT
+        </button>
+
 
         <div class="sidebar-system-status">
 
             <span class="online-light"></span>
 
             <div>
-                <strong>System Online</strong>
-                <p>Version 0.8</p>
+
+                <strong>
+                    System Online
+                </strong>
+
+                <p>
+                    Version 0.8
+                </p>
+
             </div>
 
         </div>
 
     </aside>
 
+
     <main class="content">
 
         <header class="command-header">
 
             <div>
+
                 <p class="system-label">
                     MASTER CONTROL // OPERATIONS
                 </p>
 
-                <h1>Dashboard</h1>
+                <h1>
+                    Dashboard
+                </h1>
 
                 <p class="header-description">
                     Live activity, AI performance, approval status,
                     and business operations from one command center.
                 </p>
+
             </div>
+
 
             <button
                 id="refresh-dashboard"
@@ -102,123 +150,253 @@
 
         </header>
 
+
         <section class="dashboard-stats">
 
             <article class="dashboard-stat-card">
-                <span>Businesses</span>
-                <strong id="stat-businesses">0</strong>
-                <small>Active profiles</small>
+
+                <span>
+                    Businesses
+                </span>
+
+                <strong id="stat-businesses">
+                    0
+                </strong>
+
+                <small>
+                    Active profiles
+                </small>
+
             </article>
 
-            <article class="dashboard-stat-card">
-                <span>Comments Today</span>
-                <strong id="stat-comments-today">0</strong>
-                <small>New activity</small>
-            </article>
 
             <article class="dashboard-stat-card">
-                <span>Replies Today</span>
-                <strong id="stat-replies-today">0</strong>
-                <small>Saved responses</small>
+
+                <span>
+                    Comments Today
+                </span>
+
+                <strong id="stat-comments-today">
+                    0
+                </strong>
+
+                <small>
+                    New activity
+                </small>
+
             </article>
+
+
+            <article class="dashboard-stat-card">
+
+                <span>
+                    Replies Today
+                </span>
+
+                <strong id="stat-replies-today">
+                    0
+                </strong>
+
+                <small>
+                    Saved responses
+                </small>
+
+            </article>
+
 
             <article
                 class="dashboard-stat-card clickable-card"
                 data-status="pending"
             >
-                <span>Pending</span>
-                <strong id="stat-pending">0</strong>
-                <small>Needs attention</small>
+
+                <span>
+                    Pending
+                </span>
+
+                <strong id="stat-pending">
+                    0
+                </strong>
+
+                <small>
+                    Needs attention
+                </small>
+
             </article>
+
 
             <article
                 class="dashboard-stat-card clickable-card"
                 data-status="approved"
             >
-                <span>Approved</span>
-                <strong id="stat-approved">0</strong>
-                <small>Ready to post</small>
+
+                <span>
+                    Approved
+                </span>
+
+                <strong id="stat-approved">
+                    0
+                </strong>
+
+                <small>
+                    Ready to post
+                </small>
+
             </article>
+
 
             <article
                 class="dashboard-stat-card clickable-card"
                 data-status="posted"
             >
-                <span>Posted</span>
-                <strong id="stat-posted">0</strong>
-                <small>Completed replies</small>
+
+                <span>
+                    Posted
+                </span>
+
+                <strong id="stat-posted">
+                    0
+                </strong>
+
+                <small>
+                    Completed replies
+                </small>
+
             </article>
 
-            <article class="dashboard-stat-card">
-                <span>Rule Replies</span>
-                <strong id="stat-rules">0</strong>
-                <small>Zero API cost</small>
-            </article>
 
             <article class="dashboard-stat-card">
-                <span>GPT Replies</span>
-                <strong id="stat-gpt">0</strong>
-                <small>AI generated</small>
+
+                <span>
+                    Rule Replies
+                </span>
+
+                <strong id="stat-rules">
+                    0
+                </strong>
+
+                <small>
+                    Zero API cost
+                </small>
+
             </article>
 
-            <article class="dashboard-stat-card">
-                <span>Average Response</span>
-                <strong id="stat-processing">0 ms</strong>
-                <small>Processing time</small>
-            </article>
 
             <article class="dashboard-stat-card">
-                <span>Estimated Cost</span>
-                <strong id="stat-cost">$0.0000</strong>
-                <small>Total API usage</small>
+
+                <span>
+                    GPT Replies
+                </span>
+
+                <strong id="stat-gpt">
+                    0
+                </strong>
+
+                <small>
+                    AI generated
+                </small>
+
+            </article>
+
+
+            <article class="dashboard-stat-card">
+
+                <span>
+                    Average Response
+                </span>
+
+                <strong id="stat-processing">
+                    0 ms
+                </strong>
+
+                <small>
+                    Processing time
+                </small>
+
+            </article>
+
+
+            <article class="dashboard-stat-card">
+
+                <span>
+                    Estimated Cost
+                </span>
+
+                <strong id="stat-cost">
+                    $0.0000
+                </strong>
+
+                <small>
+                    Total API usage
+                </small>
+
             </article>
 
         </section>
+
 
         <section class="dashboard-layout">
 
             <section class="dashboard-panel">
 
                 <div class="dashboard-panel-header">
+
                     <div>
+
                         <span class="panel-label">
                             BUSINESS ACTIVITY
                         </span>
 
-                        <h2>Operations Overview</h2>
+                        <h2>
+                            Operations Overview
+                        </h2>
+
                     </div>
+
                 </div>
+
 
                 <div
                     id="business-activity"
                     class="business-activity-list"
                 >
+
                     <div class="dashboard-empty">
                         Loading businesses...
                     </div>
+
                 </div>
 
             </section>
 
+
             <section class="dashboard-panel">
 
                 <div class="dashboard-panel-header">
+
                     <div>
+
                         <span class="panel-label">
                             RECENT ACTIVITY
                         </span>
 
-                        <h2>Latest Comments</h2>
+                        <h2>
+                            Latest Comments
+                        </h2>
+
                     </div>
+
                 </div>
+
 
                 <div
                     id="recent-activity"
                     class="recent-activity-list"
                 >
+
                     <div class="dashboard-empty">
                         Loading activity...
                     </div>
+
                 </div>
 
             </section>
@@ -227,8 +405,16 @@
 
     </main>
 
+
+    <script src="/js/core/auth.js?v=1"></script>
     <script src="/js/core/api.js?v=50"></script>
     <script src="/js/dashboard.js"></script>
 
+
+    <script>
+        MasterControlAuth.requireAuth();
+    </script>
+
 </body>
+
 </html>

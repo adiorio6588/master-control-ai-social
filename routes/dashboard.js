@@ -3,73 +3,164 @@ const router = express.Router();
 
 const database = require("../database/database");
 
+
 /*
- * GET /api/dashboard
- *
- * Returns live statistics for the Master Control dashboard.
- */
+====================================================
+GET /api/dashboard
+====================================================
+
+Returns dashboard statistics ONLY for the
+current organization.
+====================================================
+*/
+
 router.get("/dashboard", (req, res) => {
+
     try {
+
+        const organizationId =
+            getCurrentOrganizationId(req);
+
+
+        // TOTAL BUSINESSES
         const businesses = database
             .prepare(`
                 SELECT COUNT(*) AS total
                 FROM businesses
+                WHERE organization_id = ?
             `)
-            .get().total;
+            .get(organizationId)
+            .total;
 
+
+        // TOTAL COMMENTS
         const totalComments = database
             .prepare(`
                 SELECT COUNT(*) AS total
-                FROM comments
-            `)
-            .get().total;
 
+                FROM comments
+
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
+            `)
+            .get(organizationId)
+            .total;
+
+
+        // COMMENTS TODAY
         const commentsToday = database
             .prepare(`
                 SELECT COUNT(*) AS total
+
                 FROM comments
-                WHERE DATE(
-                    created_at,
+
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
+
+                AND DATE(
+                    comments.created_at,
                     'localtime'
                 ) = DATE(
                     'now',
                     'localtime'
                 )
             `)
-            .get().total;
+            .get(organizationId)
+            .total;
 
-        const pending = getStatusCount("pending");
-        const replied = getStatusCount("replied");
-        const approved = getStatusCount("approved");
-        const posted = getStatusCount("posted");
-        const ignored = getStatusCount("ignored");
 
+        // STATUS COUNTS
+        const pending =
+            getStatusCount(
+                "pending",
+                organizationId
+            );
+
+        const replied =
+            getStatusCount(
+                "replied",
+                organizationId
+            );
+
+        const approved =
+            getStatusCount(
+                "approved",
+                organizationId
+            );
+
+        const posted =
+            getStatusCount(
+                "posted",
+                organizationId
+            );
+
+        const ignored =
+            getStatusCount(
+                "ignored",
+                organizationId
+            );
+
+
+        // RULE REPLIES
         const ruleReplies = database
             .prepare(`
                 SELECT COUNT(*) AS total
-                FROM comments
-                WHERE source = 'RULE'
-            `)
-            .get().total;
 
+                FROM comments
+
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
+
+                AND comments.source = 'RULE'
+            `)
+            .get(organizationId)
+            .total;
+
+
+        // GPT REPLIES
         const gptReplies = database
             .prepare(`
                 SELECT COUNT(*) AS total
-                FROM comments
-                WHERE source = 'GPT'
-            `)
-            .get().total;
 
+                FROM comments
+
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
+
+                AND comments.source = 'GPT'
+            `)
+            .get(organizationId)
+            .total;
+
+
+        // REPLIES TODAY
         const repliesToday = database
             .prepare(`
                 SELECT COUNT(*) AS total
+
                 FROM comments
-                WHERE reply IS NOT NULL
-                AND TRIM(reply) != ''
+
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
+
+                AND comments.reply IS NOT NULL
+
+                AND TRIM(comments.reply) != ''
+
                 AND DATE(
                     COALESCE(
-                        updated_at,
-                        created_at
+                        comments.updated_at,
+                        comments.created_at
                     ),
                     'localtime'
                 ) = DATE(
@@ -77,49 +168,77 @@ router.get("/dashboard", (req, res) => {
                     'localtime'
                 )
             `)
-            .get().total;
+            .get(organizationId)
+            .total;
 
+
+        // AVERAGE PROCESSING TIME
         const averageProcessingResult = database
             .prepare(`
                 SELECT
                     ROUND(
-                        AVG(processing_time),
+                        AVG(comments.processing_time),
                         2
                     ) AS average
+
                 FROM comments
-                WHERE processing_time IS NOT NULL
+
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
+
+                AND comments.processing_time IS NOT NULL
             `)
-            .get();
+            .get(organizationId);
+
 
         const averageProcessingTime =
             averageProcessingResult.average || 0;
 
+
+        // ESTIMATED COST
         const estimatedCostResult = database
             .prepare(`
                 SELECT
                     ROUND(
                         COALESCE(
-                            SUM(estimated_cost),
+                            SUM(comments.estimated_cost),
                             0
                         ),
                         4
                     ) AS total
+
                 FROM comments
+
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
             `)
-            .get();
+            .get(organizationId);
+
 
         const estimatedCost =
             estimatedCostResult.total || 0;
 
+
+        // ACTIVITY TODAY
         const activityToday = database
             .prepare(`
-                SELECT
-                    COUNT(*) AS total
+                SELECT COUNT(*) AS total
+
                 FROM comments
-                WHERE DATE(
+
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
+
+                AND DATE(
                     COALESCE(
-                        updated_at,
-                        created_at
+                        comments.updated_at,
+                        comments.created_at
                     ),
                     'localtime'
                 ) = DATE(
@@ -127,12 +246,16 @@ router.get("/dashboard", (req, res) => {
                     'localtime'
                 )
             `)
-            .get().total;
+            .get(organizationId)
+            .total;
 
+
+        // BUSINESS ACTIVITY
         const businessActivity = database
             .prepare(`
                 SELECT
                     businesses.id,
+                    businesses.organization_id,
                     businesses.name,
                     businesses.emoji,
 
@@ -143,7 +266,7 @@ router.get("/dashboard", (req, res) => {
                     SUM(
                         CASE
                             WHEN comments.status = 'pending'
-                                THEN 1
+                            THEN 1
                             ELSE 0
                         END
                     ) AS pending_comments,
@@ -151,7 +274,7 @@ router.get("/dashboard", (req, res) => {
                     SUM(
                         CASE
                             WHEN comments.status = 'replied'
-                                THEN 1
+                            THEN 1
                             ELSE 0
                         END
                     ) AS replied_comments,
@@ -159,7 +282,7 @@ router.get("/dashboard", (req, res) => {
                     SUM(
                         CASE
                             WHEN comments.status = 'approved'
-                                THEN 1
+                            THEN 1
                             ELSE 0
                         END
                     ) AS approved_comments,
@@ -167,7 +290,7 @@ router.get("/dashboard", (req, res) => {
                     SUM(
                         CASE
                             WHEN comments.status = 'posted'
-                                THEN 1
+                            THEN 1
                             ELSE 0
                         END
                     ) AS posted_comments,
@@ -175,7 +298,7 @@ router.get("/dashboard", (req, res) => {
                     SUM(
                         CASE
                             WHEN comments.status = 'ignored'
-                                THEN 1
+                            THEN 1
                             ELSE 0
                         END
                     ) AS ignored_comments,
@@ -183,7 +306,7 @@ router.get("/dashboard", (req, res) => {
                     SUM(
                         CASE
                             WHEN comments.source = 'RULE'
-                                THEN 1
+                            THEN 1
                             ELSE 0
                         END
                     ) AS rule_replies,
@@ -191,7 +314,7 @@ router.get("/dashboard", (req, res) => {
                     SUM(
                         CASE
                             WHEN comments.source = 'GPT'
-                                THEN 1
+                            THEN 1
                             ELSE 0
                         END
                     ) AS gpt_replies
@@ -199,11 +322,13 @@ router.get("/dashboard", (req, res) => {
                 FROM businesses
 
                 LEFT JOIN comments
-                    ON comments.business_id =
-                        businesses.id
+                    ON comments.business_id = businesses.id
+
+                WHERE businesses.organization_id = ?
 
                 GROUP BY
                     businesses.id,
+                    businesses.organization_id,
                     businesses.name,
                     businesses.emoji
 
@@ -212,13 +337,17 @@ router.get("/dashboard", (req, res) => {
                     total_comments DESC,
                     businesses.name ASC
             `)
-            .all();
+            .all(organizationId);
 
+
+        // RECENT ACTIVITY
         const recentActivity = database
             .prepare(`
                 SELECT
                     comments.id,
                     comments.business_id,
+
+                    businesses.organization_id,
 
                     businesses.name AS business_name,
                     businesses.emoji AS business_emoji,
@@ -234,28 +363,39 @@ router.get("/dashboard", (req, res) => {
 
                 FROM comments
 
-                LEFT JOIN businesses
-                    ON businesses.id =
-                        comments.business_id
+                INNER JOIN businesses
+                    ON businesses.id = comments.business_id
+
+                WHERE businesses.organization_id = ?
 
                 ORDER BY
                     COALESCE(
                         comments.updated_at,
                         comments.created_at
                     ) DESC,
+
                     comments.id DESC
 
                 LIMIT 10
             `)
-            .all();
+            .all(organizationId);
 
+
+        // RESPONSE
         res.json({
+
             systemStatus: "online",
 
+            organizationId,
+
             businesses,
+
             totalComments,
+
             commentsToday,
+
             repliesToday,
+
             activityToday,
 
             statuses: {
@@ -267,42 +407,110 @@ router.get("/dashboard", (req, res) => {
             },
 
             ruleReplies,
+
             gptReplies,
 
             averageProcessingTime,
+
             estimatedCost,
 
             businessActivity,
+
             recentActivity
+
         });
+
     } catch (error) {
+
         console.error(
             "Dashboard route error:",
             error
         );
 
         res.status(500).json({
+
             error:
                 "Unable to load dashboard statistics.",
+
             details:
                 error.message
+
         });
+
     }
+
 });
 
+
 /*
- * Return the number of comments with a specific status.
- */
-function getStatusCount(status) {
+====================================================
+GET STATUS COUNT
+====================================================
+*/
+
+function getStatusCount(
+    status,
+    organizationId
+) {
+
     const result = database
         .prepare(`
             SELECT COUNT(*) AS total
+
             FROM comments
-            WHERE status = ?
+
+            INNER JOIN businesses
+                ON businesses.id = comments.business_id
+
+            WHERE businesses.organization_id = ?
+
+            AND comments.status = ?
         `)
-        .get(status);
+        .get(
+            organizationId,
+            status
+        );
+
 
     return result.total || 0;
+
 }
+
+
+/*
+====================================================
+CURRENT ORGANIZATION
+====================================================
+*/
+
+function getCurrentOrganizationId(req) {
+
+    const organizationId =
+        Number(req.organizationId);
+
+
+    if (
+        !Number.isInteger(organizationId)
+        ||
+        organizationId <= 0
+    ) {
+
+        throw new Error(
+            "Organization context is missing."
+        );
+
+    }
+
+
+    return organizationId;
+
+}
+
+
+/*
+====================================================
+EXPORT
+====================================================
+*/
 
 module.exports = router;

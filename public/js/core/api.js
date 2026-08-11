@@ -4,43 +4,114 @@ window.MasterControlAPI = (() => {
         endpoint,
         options = {}
     ) {
+    
+        const token =
+            localStorage.getItem(
+                "masterControlToken"
+            );
+    
+    
         const config = {
             ...options,
+    
             headers: {
+    
                 ...(options.body
                     ? {
                         "Content-Type":
                             "application/json"
                     }
                     : {}),
+    
+                ...(token
+                    ? {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                    : {}),
+    
                 ...(options.headers || {})
             }
         };
-
+    
+    
         const response =
             await fetch(
                 endpoint,
                 config
             );
-
+    
+    
         let data = {};
-
+    
+    
         try {
+    
             data =
                 await response.json();
+    
         }
         catch {
+    
             data = {};
+    
         }
-
+    
+    
+        /*
+        ====================================================
+        AUTHENTICATION FAILURE
+        ====================================================
+        */
+    
+        if (
+            response.status === 401
+        ) {
+    
+            localStorage.removeItem(
+                "masterControlToken"
+            );
+    
+            localStorage.removeItem(
+                "masterControlUser"
+            );
+    
+            localStorage.removeItem(
+                "masterControlOrganization"
+            );
+    
+    
+            if (
+                window.location.pathname !==
+                "/login"
+            ) {
+    
+                window.location.href =
+                    "/login";
+    
+            }
+    
+    
+            throw new Error(
+                data.error ||
+                "Authentication required."
+            );
+    
+        }
+    
+    
         if (!response.ok) {
+    
             throw new Error(
                 data.error ||
                 `Request failed (${response.status})`
             );
+    
         }
-
+    
+    
         return data;
+    
     }
 
 

@@ -1,24 +1,161 @@
-const database = require("./database");
+const database =
+    require("./database");
+
+
+/*
+====================================================
+INITIALIZE DATABASE
+====================================================
+*/
 
 function initializeDatabase() {
+
     database.exec(`
-        CREATE TABLE IF NOT EXISTS businesses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            emoji TEXT DEFAULT '',
-            prompt TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
 
         /*
-         * Social accounts connected to each business.
-         *
-         * We intentionally do NOT store access tokens here.
-         * Credentials will be handled separately when
-         * platform connectors are implemented.
-         */
+        ====================================================
+        USERS
+        ====================================================
+        */
+
+        CREATE TABLE IF NOT EXISTS users (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            email TEXT NOT NULL UNIQUE,
+
+            display_name TEXT DEFAULT '',
+
+            password_hash TEXT,
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP
+
+        );
+
+
+        /*
+        ====================================================
+        ORGANIZATIONS
+        ====================================================
+        */
+
+        CREATE TABLE IF NOT EXISTS organizations (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            name TEXT NOT NULL,
+
+            slug TEXT NOT NULL UNIQUE,
+
+            owner_user_id INTEGER NOT NULL,
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                owner_user_id
+            )
+            REFERENCES users(id)
+            ON DELETE CASCADE
+
+        );
+
+
+        /*
+        ====================================================
+        ORGANIZATION MEMBERS
+        ====================================================
+        */
+
+        CREATE TABLE IF NOT EXISTS organization_members (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            organization_id INTEGER NOT NULL,
+
+            user_id INTEGER NOT NULL,
+
+            role TEXT NOT NULL
+                DEFAULT 'member',
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                organization_id
+            )
+            REFERENCES organizations(id)
+            ON DELETE CASCADE,
+
+            FOREIGN KEY (
+                user_id
+            )
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+            UNIQUE (
+                organization_id,
+                user_id
+            )
+
+        );
+
+
+        /*
+        ====================================================
+        BUSINESSES
+        ====================================================
+        */
+
+        CREATE TABLE IF NOT EXISTS businesses (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            organization_id INTEGER,
+
+            name TEXT NOT NULL UNIQUE,
+
+            emoji TEXT DEFAULT '',
+
+            prompt TEXT NOT NULL,
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                organization_id
+            )
+            REFERENCES organizations(id)
+            ON DELETE CASCADE
+
+        );
+
+
+        /*
+        ====================================================
+        SOCIAL ACCOUNTS
+        ====================================================
+
+        Social accounts connected to each business.
+
+        We intentionally do NOT store access tokens here.
+
+        OAuth credentials will be handled separately when
+        real platform connectors are implemented.
+        */
+
         CREATE TABLE IF NOT EXISTS social_accounts (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             business_id INTEGER NOT NULL,
@@ -29,89 +166,216 @@ function initializeDatabase() {
 
             external_account_id TEXT DEFAULT '',
 
-            connected INTEGER NOT NULL DEFAULT 0,
+            connected INTEGER NOT NULL
+                DEFAULT 0,
 
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
 
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
 
-            FOREIGN KEY (business_id)
-                REFERENCES businesses(id)
-                ON DELETE CASCADE,
+            FOREIGN KEY (
+                business_id
+            )
+            REFERENCES businesses(id)
+            ON DELETE CASCADE,
 
             UNIQUE (
                 business_id,
                 platform
             )
+
         );
+
+
+        /*
+        ====================================================
+        COMMENTS
+        ====================================================
+        */
 
         CREATE TABLE IF NOT EXISTS comments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            business_id INTEGER,
-            platform TEXT NOT NULL DEFAULT 'manual',
-            author TEXT DEFAULT 'Customer',
-            content TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'pending',
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-            FOREIGN KEY (business_id)
-                REFERENCES businesses(id)
-                ON DELETE SET NULL
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            business_id INTEGER,
+
+            platform TEXT NOT NULL
+                DEFAULT 'manual',
+
+            author TEXT DEFAULT 'Customer',
+
+            content TEXT NOT NULL,
+
+            status TEXT NOT NULL
+                DEFAULT 'pending',
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                business_id
+            )
+            REFERENCES businesses(id)
+            ON DELETE SET NULL
+
         );
+
+
+        /*
+        ====================================================
+        REPLIES
+        ====================================================
+        */
 
         CREATE TABLE IF NOT EXISTS replies (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            comment_id INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            approved INTEGER NOT NULL DEFAULT 0,
-            posted INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-            FOREIGN KEY (comment_id)
-                REFERENCES comments(id)
-                ON DELETE CASCADE
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            comment_id INTEGER NOT NULL,
+
+            content TEXT NOT NULL,
+
+            approved INTEGER NOT NULL
+                DEFAULT 0,
+
+            posted INTEGER NOT NULL
+                DEFAULT 0,
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                comment_id
+            )
+            REFERENCES comments(id)
+            ON DELETE CASCADE
+
         );
+
+
+        /*
+        ====================================================
+        SETTINGS
+        ====================================================
+        */
 
         CREATE TABLE IF NOT EXISTS settings (
+
             key TEXT PRIMARY KEY,
+
             value TEXT,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+            updated_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP
+
         );
 
-        CREATE TABLE IF NOT EXISTS reply_rules (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            business_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            keywords TEXT NOT NULL,
-            reply TEXT NOT NULL,
-            enabled INTEGER NOT NULL DEFAULT 1,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-            FOREIGN KEY (business_id)
-                REFERENCES businesses(id)
-                ON DELETE CASCADE,
+        /*
+        ====================================================
+        REPLY RULES
+        ====================================================
+        */
+
+        CREATE TABLE IF NOT EXISTS reply_rules (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            business_id INTEGER NOT NULL,
+
+            name TEXT NOT NULL,
+
+            keywords TEXT NOT NULL,
+
+            reply TEXT NOT NULL,
+
+            enabled INTEGER NOT NULL
+                DEFAULT 1,
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                business_id
+            )
+            REFERENCES businesses(id)
+            ON DELETE CASCADE,
 
             UNIQUE (
                 business_id,
                 name
             )
+
         );
+
     `);
+
+
+    /*
+    ====================================================
+    MIGRATIONS
+    ====================================================
+    */
 
     upgradeCommentsTable();
 
+    upgradeBusinessesTable();
+
+
+    /*
+    ====================================================
+    LOCAL DEVELOPMENT SAAS ACCOUNT
+    ====================================================
+    */
+
+    const defaultOrganizationId =
+        seedLocalSaasAccount();
+
+
+    /*
+    ====================================================
+    ASSIGN EXISTING DATA
+    ====================================================
+    */
+
+    assignExistingBusinessesToOrganization(
+        defaultOrganizationId
+    );
+
+
+    /*
+    ====================================================
+    INDEXES
+    ====================================================
+    */
+
     createIndexes();
 
-    seedBusinesses();
+
+    /*
+    ====================================================
+    SEED DATA
+    ====================================================
+    */
+
+    seedBusinesses(
+        defaultOrganizationId
+    );
 
     seedSocialAccounts();
 
     seedReplyRules();
 
+
     console.log(
         "Database initialized successfully."
     );
+
 }
 
 
@@ -122,11 +386,14 @@ COMMENTS MIGRATION
 */
 
 function upgradeCommentsTable() {
-    const columns = database
-        .prepare(`
-            PRAGMA table_info(comments)
-        `)
-        .all();
+
+    const columns =
+        database
+            .prepare(`
+                PRAGMA table_info(comments)
+            `)
+            .all();
+
 
     const existingColumns =
         columns.map(
@@ -134,77 +401,337 @@ function upgradeCommentsTable() {
                 column.name
         );
 
-    addColumnIfMissing(
+
+    addCommentsColumnIfMissing(
         existingColumns,
         "reply",
         "reply TEXT"
     );
 
-    addColumnIfMissing(
+
+    addCommentsColumnIfMissing(
         existingColumns,
         "source",
         "source TEXT"
     );
 
-    addColumnIfMissing(
+
+    addCommentsColumnIfMissing(
         existingColumns,
         "rule",
         "rule TEXT"
     );
 
-    addColumnIfMissing(
+
+    addCommentsColumnIfMissing(
         existingColumns,
         "confidence",
         "confidence INTEGER"
     );
 
-    addColumnIfMissing(
+
+    addCommentsColumnIfMissing(
         existingColumns,
         "processing_time",
         "processing_time INTEGER"
     );
 
-    addColumnIfMissing(
+
+    addCommentsColumnIfMissing(
         existingColumns,
         "estimated_cost",
         "estimated_cost REAL"
     );
 
-    addColumnIfMissing(
+
+    addCommentsColumnIfMissing(
         existingColumns,
         "updated_at",
         "updated_at TEXT"
     );
+
 }
 
 
 /*
 ====================================================
-ADD DATABASE COLUMN IF MISSING
+ADD COMMENTS COLUMN IF MISSING
 ====================================================
 */
 
-function addColumnIfMissing(
+function addCommentsColumnIfMissing(
     existingColumns,
     columnName,
     columnDefinition
 ) {
+
     if (
         existingColumns.includes(
             columnName
         )
     ) {
+
         return;
+
     }
+
 
     console.log(
         `Adding comments.${columnName}`
     );
 
+
     database.exec(`
         ALTER TABLE comments
         ADD COLUMN ${columnDefinition}
     `);
+
+}
+
+
+/*
+====================================================
+BUSINESS SAAS MIGRATION
+====================================================
+*/
+
+function upgradeBusinessesTable() {
+
+    const columns =
+        database
+            .prepare(`
+                PRAGMA table_info(businesses)
+            `)
+            .all();
+
+
+    const existingColumns =
+        columns.map(
+            (column) =>
+                column.name
+        );
+
+
+    if (
+        !existingColumns.includes(
+            "organization_id"
+        )
+    ) {
+
+        console.log(
+            "Adding businesses.organization_id"
+        );
+
+
+        database.exec(`
+            ALTER TABLE businesses
+            ADD COLUMN organization_id INTEGER
+        `);
+
+    }
+
+}
+
+
+/*
+====================================================
+LOCAL DEVELOPMENT USER + ORGANIZATION
+====================================================
+
+For now this acts as the logged-in tenant.
+
+Later this will be replaced by the real signup/login
+system.
+====================================================
+*/
+
+function seedLocalSaasAccount() {
+
+    const email =
+        "dev@mastercontrol.local";
+
+
+    const displayName =
+        "Master Control Developer";
+
+
+    const organizationName =
+        "Master Control";
+
+
+    const organizationSlug =
+        "master-control";
+
+
+    /*
+    ====================================================
+    Create Development User
+    ====================================================
+    */
+
+    database
+        .prepare(`
+            INSERT OR IGNORE INTO users (
+                email,
+                display_name
+            )
+            VALUES (?, ?)
+        `)
+        .run(
+            email,
+            displayName
+        );
+
+
+    const user =
+        database
+            .prepare(`
+                SELECT
+                    id,
+                    email,
+                    display_name
+
+                FROM users
+
+                WHERE email = ?
+            `)
+            .get(
+                email
+            );
+
+
+    if (
+        !user
+    ) {
+
+        throw new Error(
+            "Unable to create local SaaS user."
+        );
+
+    }
+
+
+    /*
+    ====================================================
+    Create Development Organization
+    ====================================================
+    */
+
+    database
+        .prepare(`
+            INSERT OR IGNORE INTO organizations (
+                name,
+                slug,
+                owner_user_id
+            )
+            VALUES (?, ?, ?)
+        `)
+        .run(
+            organizationName,
+            organizationSlug,
+            user.id
+        );
+
+
+    const organization =
+        database
+            .prepare(`
+                SELECT
+                    id,
+                    name,
+                    slug,
+                    owner_user_id
+
+                FROM organizations
+
+                WHERE slug = ?
+            `)
+            .get(
+                organizationSlug
+            );
+
+
+    if (
+        !organization
+    ) {
+
+        throw new Error(
+            "Unable to create local SaaS organization."
+        );
+
+    }
+
+
+    /*
+    ====================================================
+    Add User as Organization Owner
+    ====================================================
+    */
+
+    database
+        .prepare(`
+            INSERT OR IGNORE INTO organization_members (
+                organization_id,
+                user_id,
+                role
+            )
+            VALUES (?, ?, ?)
+        `)
+        .run(
+            organization.id,
+            user.id,
+            "owner"
+        );
+
+
+    return organization.id;
+
+}
+
+
+/*
+====================================================
+ASSIGN EXISTING BUSINESSES
+====================================================
+
+This protects your existing business IDs.
+
+Nothing is recreated.
+
+Existing businesses with no organization are simply
+assigned to the local development organization.
+====================================================
+*/
+
+function assignExistingBusinessesToOrganization(
+    organizationId
+) {
+
+    const result =
+        database
+            .prepare(`
+                UPDATE businesses
+
+                SET organization_id = ?
+
+                WHERE
+                    organization_id IS NULL
+            `)
+            .run(
+                organizationId
+            );
+
+
+    if (
+        result.changes > 0
+    ) {
+
+        console.log(
+            `Assigned ${result.changes} existing business(es) to organization ${organizationId}.`
+        );
+
+    }
+
 }
 
 
@@ -215,39 +742,117 @@ DATABASE INDEXES
 */
 
 function createIndexes() {
+
     database.exec(`
+
+        /*
+        ====================================================
+        SAAS
+        ====================================================
+        */
+
+        CREATE INDEX IF NOT EXISTS
+            idx_businesses_organization_id
+        ON businesses(
+            organization_id
+        );
+
+
+        CREATE INDEX IF NOT EXISTS
+            idx_organization_members_org
+        ON organization_members(
+            organization_id
+        );
+
+
+        CREATE INDEX IF NOT EXISTS
+            idx_organization_members_user
+        ON organization_members(
+            user_id
+        );
+
+
+        /*
+        ====================================================
+        COMMENTS
+        ====================================================
+        */
+
         CREATE INDEX IF NOT EXISTS
             idx_comments_business_id
-        ON comments(business_id);
+        ON comments(
+            business_id
+        );
+
 
         CREATE INDEX IF NOT EXISTS
             idx_comments_status
-        ON comments(status);
+        ON comments(
+            status
+        );
+
 
         CREATE INDEX IF NOT EXISTS
             idx_comments_platform
-        ON comments(platform);
+        ON comments(
+            platform
+        );
+
+
+        /*
+        ====================================================
+        REPLIES
+        ====================================================
+        */
 
         CREATE INDEX IF NOT EXISTS
             idx_replies_comment_id
-        ON replies(comment_id);
+        ON replies(
+            comment_id
+        );
+
+
+        /*
+        ====================================================
+        RULES
+        ====================================================
+        */
 
         CREATE INDEX IF NOT EXISTS
             idx_reply_rules_business_id
-        ON reply_rules(business_id);
+        ON reply_rules(
+            business_id
+        );
+
+
+        /*
+        ====================================================
+        SOCIAL ACCOUNTS
+        ====================================================
+        */
 
         CREATE INDEX IF NOT EXISTS
             idx_social_accounts_business_id
-        ON social_accounts(business_id);
+        ON social_accounts(
+            business_id
+        );
+
 
         CREATE INDEX IF NOT EXISTS
             idx_social_accounts_platform
-        ON social_accounts(platform);
+        ON social_accounts(
+            platform
+        );
+
 
         CREATE INDEX IF NOT EXISTS
             idx_social_accounts_connected
-        ON social_accounts(connected);
+        ON social_accounts(
+            connected
+        );
+
     `);
+
 }
 
 
@@ -257,26 +862,50 @@ SEED BUSINESSES
 ====================================================
 */
 
-function seedBusinesses() {
+function seedBusinesses(
+    organizationId
+) {
+
     const insertBusiness =
         database.prepare(`
+
             INSERT OR IGNORE INTO businesses (
+
+                organization_id,
+
                 name,
+
                 emoji,
+
                 prompt
+
             )
-            VALUES (?, ?, ?)
+
+            VALUES (?, ?, ?, ?)
+
         `);
 
+
     const businesses = [
+
+        /*
+        ====================================================
+        CHICAGO TONY'S
+        ====================================================
+        */
+
         {
+
             name:
                 "Chicago Tony's Co.",
+
 
             emoji:
                 "🍕",
 
+
             prompt: `
+
 You represent Chicago Tony's Co., a Chicago-style pizza business.
 
 Reply in a warm, casual, helpful tone.
@@ -288,17 +917,30 @@ Never invent delivery areas, prices, availability, or shipping details.
 Invite the customer to send a direct message when more information is needed.
 
 Never mention artificial intelligence.
+
             `.trim()
+
         },
 
+
+        /*
+        ====================================================
+        BENDITAS FOODS
+        ====================================================
+        */
+
         {
+
             name:
                 "Benditas Foods",
+
 
             emoji:
                 "🇨🇴",
 
+
             prompt: `
+
 You represent Benditas Foods, a homemade Colombian food business serving California's Central Valley.
 
 Reply warmly and naturally.
@@ -312,17 +954,30 @@ Never invent prices, ingredients, delivery areas, or availability.
 Invite the customer to send a direct message to order when appropriate.
 
 Never mention artificial intelligence.
+
             `.trim()
+
         },
 
+
+        /*
+        ====================================================
+        LUCKY PET 777
+        ====================================================
+        */
+
         {
+
             name:
                 "Lucky Pet 777",
+
 
             emoji:
                 "🐶",
 
+
             prompt: `
+
 You represent Lucky Pet 777, a homemade dog treat business.
 
 Reply in a friendly, caring, helpful tone.
@@ -336,17 +991,30 @@ Never invent ingredients, prices, or availability.
 Invite the customer to send a direct message when appropriate.
 
 Never mention artificial intelligence.
+
             `.trim()
+
         },
 
+
+        /*
+        ====================================================
+        MASTER CONTROL
+        ====================================================
+        */
+
         {
+
             name:
                 "Master Control",
+
 
             emoji:
                 "💻",
 
+
             prompt: `
+
 You represent Master Control Computer Graphics.
 
 Reply professionally while remaining approachable.
@@ -358,17 +1026,30 @@ Never invent prices, turnaround times, guarantees, or availability.
 Invite the customer to send a direct message to discuss the project.
 
 Never mention artificial intelligence.
+
             `.trim()
+
         },
 
+
+        /*
+        ====================================================
+        MENSAJES DEL COLIBRÍ
+        ====================================================
+        */
+
         {
+
             name:
                 "Mensajes del Colibrí",
+
 
             emoji:
                 "🕊️",
 
+
             prompt: `
+
 You represent Mensajes del Colibrí, a warm and compassionate spiritual guidance and tarot reading brand.
 
 Reply in Spanish unless the customer writes in English.
@@ -390,29 +1071,45 @@ Keep replies concise, natural, and welcoming.
 Invite the customer to send a direct message when personal information or more details are needed.
 
 Never mention artificial intelligence.
+
             `.trim()
+
         }
+
     ];
+
 
     const insertMany =
         database.transaction(
             (rows) => {
+
                 for (
                     const business
                     of rows
                 ) {
+
                     insertBusiness.run(
+
+                        organizationId,
+
                         business.name,
+
                         business.emoji,
+
                         business.prompt
+
                     );
+
                 }
+
             }
         );
+
 
     insertMany(
         businesses
     );
+
 }
 
 
@@ -423,61 +1120,100 @@ SEED SOCIAL ACCOUNT PLACEHOLDERS
 */
 
 function seedSocialAccounts() {
+
     const businesses =
         database
             .prepare(`
+
                 SELECT
+
                     id,
-                    name
+
+                    name,
+
+                    organization_id
+
                 FROM businesses
+
             `)
             .all();
 
+
     const insertAccount =
         database.prepare(`
+
             INSERT OR IGNORE INTO social_accounts (
+
                 business_id,
+
                 platform,
+
                 account_name,
+
                 external_account_id,
+
                 connected
+
             )
+
             VALUES (?, ?, ?, ?, ?)
+
         `);
 
+
     const platforms = [
+
         "facebook",
+
         "instagram",
+
         "youtube",
+
         "tiktok"
+
     ];
+
 
     const insertMany =
         database.transaction(
             (businessRows) => {
+
                 for (
                     const business
                     of businessRows
                 ) {
+
                     for (
                         const platform
                         of platforms
                     ) {
+
                         insertAccount.run(
+
                             business.id,
+
                             platform,
+
                             "",
+
                             "",
+
                             0
+
                         );
+
                     }
+
                 }
+
             }
         );
+
 
     insertMany(
         businesses
     );
+
 }
 
 
@@ -488,219 +1224,357 @@ SEED REPLY RULES
 */
 
 function seedReplyRules() {
+
     const findBusiness =
         database.prepare(`
-            SELECT id
+
+            SELECT
+                id
+
             FROM businesses
+
             WHERE name = ?
+
         `);
+
 
     const insertRule =
         database.prepare(`
+
             INSERT OR IGNORE INTO reply_rules (
+
                 business_id,
+
                 name,
+
                 keywords,
+
                 reply,
+
                 enabled
+
             )
+
             VALUES (?, ?, ?, ?, ?)
+
         `);
 
+
     const rules = [
+
+        /*
+        ====================================================
+        BENDITAS FOODS
+        ====================================================
+        */
+
         {
+
             business:
                 "Benditas Foods",
 
+
             name:
                 "Pricing",
+
 
             keywords:
                 "price,cost,how much,pricing,precio,precios,cuanto,cuánto",
 
+
             reply:
                 "Thanks for asking! Please send us a DM and we'll gladly share our current menu and pricing."
+
         },
 
+
         {
+
             business:
                 "Benditas Foods",
 
+
             name:
                 "Delivery",
+
 
             keywords:
                 "deliver,delivery,do you deliver,entrega,domicilio,modesto,lodi",
 
+
             reply:
                 "We'd love to help! Please send us a DM with your location and we'll let you know if delivery is available."
+
         },
 
+
         {
+
             business:
                 "Benditas Foods",
+
 
             name:
                 "Ordering",
 
+
             keywords:
                 "order,purchase,buy,place an order,comprar,pedido,ordenar",
 
+
             reply:
                 "We'd love to prepare your order! Please send us a DM with the items and quantity you'd like."
+
         },
 
+
+        /*
+        ====================================================
+        CHICAGO TONY'S
+        ====================================================
+        */
+
         {
+
             business:
                 "Chicago Tony's Co.",
+
 
             name:
                 "Pizza Pricing",
 
+
             keywords:
                 "price,cost,how much,pricing,precio,cuanto,cuánto",
 
+
             reply:
                 "Thanks for reaching out! Please send us a DM and we'll gladly share our current pizza menu and pricing."
+
         },
 
+
         {
+
             business:
                 "Chicago Tony's Co.",
+
 
             name:
                 "Delivery",
 
+
             keywords:
                 "deliver,delivery,do you deliver,ship,shipping",
 
+
             reply:
                 "Please send us a DM with your location and we'll let you know our current pickup and delivery options."
+
         },
 
+
+        /*
+        ====================================================
+        LUCKY PET
+        ====================================================
+        */
+
         {
+
             business:
                 "Lucky Pet 777",
+
 
             name:
                 "Ingredients",
 
+
             keywords:
                 "ingredients,ingredient,contains,what is in,what's in",
 
+
             reply:
                 "Thanks for asking! We'd be happy to share the current ingredients. Please send us a DM."
+
         },
 
+
+        /*
+        ====================================================
+        MASTER CONTROL
+        ====================================================
+        */
+
         {
+
             business:
                 "Master Control",
+
 
             name:
                 "Projects",
 
+
             keywords:
                 "logo,branding,website,graphics,design,project,advertisement,ad",
 
+
             reply:
                 "Thanks for reaching out! We'd love to discuss your project. Send us a DM and let's create something awesome together."
+
         },
 
+
+        /*
+        ====================================================
+        MENSAJES DEL COLIBRÍ
+        ====================================================
+        */
+
         {
+
             business:
                 "Mensajes del Colibrí",
+
 
             name:
                 "Reading Interest",
 
+
             keywords:
                 "lectura,lecturas,reading,tarot,consulta,consultation,información,informacion",
 
+
             reply:
                 "Hola, gracias por comunicarte con Mensajes del Colibrí 🕊️ ¿Estás interesada en una lectura general o en una lectura por preguntas? Envíanos un mensaje privado y con gusto te explicamos las opciones."
+
         },
 
+
         {
+
             business:
                 "Mensajes del Colibrí",
+
 
             name:
                 "Pricing",
 
+
             keywords:
                 "precio,precios,costo,cuánto,cuanto,how much,price,cost",
 
+
             reply:
                 "Gracias por tu interés 🕊️ Contamos con diferentes opciones de lecturas. Envíanos un mensaje privado y con gusto te compartimos los precios y el proceso."
+
         },
 
+
         {
+
             business:
                 "Mensajes del Colibrí",
+
 
             name:
                 "Membership",
 
+
             keywords:
                 "membresía,membresia,membership,suscripción,suscripcion",
 
+
             reply:
                 "Gracias por tu interés en nuestra membresía 🕊️ Incluye acompañamiento espiritual y lecturas durante el mes. Envíanos un mensaje privado y con gusto te compartimos todos los detalles."
+
         },
 
+
         {
+
             business:
                 "Mensajes del Colibrí",
+
 
             name:
                 "How It Works",
 
+
             keywords:
                 "cómo funciona,como funciona,proceso,how does it work,how it works",
 
+
             reply:
                 "El proceso es muy sencillo 🕊️ Eliges el tipo de lectura, realizas el pago y nos envías tu información o preguntas. Después recibirás tu lectura en el formato seleccionado."
+
         }
+
     ];
+
 
     const insertMany =
         database.transaction(
             (rows) => {
+
                 for (
                     const rule
                     of rows
                 ) {
+
                     const business =
                         findBusiness.get(
                             rule.business
                         );
 
+
                     if (
                         !business
                     ) {
+
                         console.warn(
                             `Skipping rule "${rule.name}": business not found.`
                         );
 
+
                         continue;
+
                     }
 
+
                     insertRule.run(
+
                         business.id,
+
                         rule.name,
+
                         rule.keywords,
+
                         rule.reply,
+
                         1
+
                     );
+
                 }
+
             }
         );
+
 
     insertMany(
         rules
     );
+
 }
 
+
+/*
+====================================================
+EXPORT
+====================================================
+*/
 
 module.exports =
     initializeDatabase;

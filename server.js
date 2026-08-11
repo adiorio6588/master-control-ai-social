@@ -12,7 +12,7 @@ const path =
 
 /*
 ====================================================
-Database
+DATABASE
 ====================================================
 */
 
@@ -22,9 +22,22 @@ const initializeDatabase =
 
 /*
 ====================================================
-Routes
+AUTHENTICATION
 ====================================================
 */
+
+const authMiddleware =
+    require("./middleware/auth");
+
+
+/*
+====================================================
+ROUTES
+====================================================
+*/
+
+const authRoutes =
+    require("./routes/auth");
 
 const aiRoutes =
     require("./routes/ai");
@@ -50,7 +63,7 @@ const socialAccountRoutes =
 
 /*
 ====================================================
-Express
+EXPRESS
 ====================================================
 */
 
@@ -65,7 +78,7 @@ const PORT =
 
 /*
 ====================================================
-Initialize Database
+INITIALIZE DATABASE
 ====================================================
 */
 
@@ -74,7 +87,7 @@ initializeDatabase();
 
 /*
 ====================================================
-Middleware
+GLOBAL MIDDLEWARE
 ====================================================
 */
 
@@ -104,15 +117,88 @@ app.use(
 
 /*
 ====================================================
-API Routes
+PUBLIC API STATUS
+====================================================
+
+No login required.
+====================================================
+*/
+
+app.get(
+    "/api/status",
+    (req, res) => {
+
+        res.json({
+
+            status:
+                "online",
+
+            system:
+                "Master Control",
+
+            message:
+                "Master Control AI is running",
+
+            port:
+                PORT
+
+        });
+
+    }
+);
+
+
+/*
+====================================================
+AUTH ROUTES
+====================================================
+
+These must be registered BEFORE the global
+authentication middleware.
+
+Public:
+
+POST /api/auth/register
+POST /api/auth/login
+
+/auth/me uses its own auth middleware internally.
 ====================================================
 */
 
 app.use(
     "/api",
-    aiRoutes
+    authRoutes
 );
 
+
+/*
+====================================================
+AUTHENTICATED API
+====================================================
+
+Everything registered after this point requires:
+
+Authorization: Bearer <token>
+
+authMiddleware reads organizationId from the
+signed JWT.
+
+We are intentionally NOT using the old
+X-Organization-ID development middleware here.
+====================================================
+*/
+
+app.use(
+    "/api",
+    authMiddleware
+);
+
+
+/*
+====================================================
+PROTECTED API ROUTES
+====================================================
+*/
 
 app.use(
     "/api",
@@ -128,13 +214,13 @@ app.use(
 
 app.use(
     "/api",
-    historyRoutes
+    rulesRoutes
 );
 
 
 app.use(
     "/api",
-    rulesRoutes
+    historyRoutes
 );
 
 
@@ -150,34 +236,15 @@ app.use(
 );
 
 
-/*
-====================================================
-System Status
-====================================================
-*/
-
-app.get(
-    "/api/status",
-    (req, res) => {
-
-        res.json({
-            status:
-                "online",
-
-            message:
-                "Master Control AI is running",
-
-            port:
-                PORT
-        });
-
-    }
+app.use(
+    "/api",
+    aiRoutes
 );
 
 
 /*
 ====================================================
-Static Frontend
+STATIC FRONTEND
 ====================================================
 */
 
@@ -193,7 +260,7 @@ app.use(
 
 /*
 ====================================================
-Root Dashboard
+ROOT
 ====================================================
 */
 
@@ -216,7 +283,7 @@ app.get(
 
 /*
 ====================================================
-Clean Page Routes
+CLEAN PAGE ROUTES
 ====================================================
 */
 
@@ -290,7 +357,7 @@ app.get(
 
 /*
 ====================================================
-Unknown API Route
+UNKNOWN API ROUTE
 ====================================================
 */
 
@@ -298,10 +365,28 @@ app.use(
     "/api",
     (req, res) => {
 
-        res.status(404).json({
-            error:
-                "API route not found."
-        });
+        res
+            .status(404)
+            .json({
+                error:
+                    "API route not found."
+            });
+
+    }
+);
+
+app.get(
+    "/login",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "pages",
+                "login.html"
+            )
+        );
 
     }
 );
@@ -309,7 +394,7 @@ app.use(
 
 /*
 ====================================================
-Server Error Handler
+SERVER ERROR HANDLER
 ====================================================
 */
 
@@ -341,8 +426,13 @@ app.use(
         res
             .status(500)
             .json({
+
                 error:
-                    "An unexpected server error occurred."
+                    "An unexpected server error occurred.",
+
+                details:
+                    error.message
+
             });
 
     }
@@ -351,7 +441,7 @@ app.use(
 
 /*
 ====================================================
-Start Server
+START SERVER
 ====================================================
 */
 
@@ -394,7 +484,19 @@ app.listen(
         );
 
         console.log(
-            ` Social Accounts API: http://localhost:${PORT}/api/social-accounts`
+            ` API Status: http://localhost:${PORT}/api/status`
+        );
+
+        console.log(
+            ` Register: POST http://localhost:${PORT}/api/auth/register`
+        );
+
+        console.log(
+            ` Login: POST http://localhost:${PORT}/api/auth/login`
+        );
+
+        console.log(
+            ` Account: GET http://localhost:${PORT}/api/auth/me`
         );
 
         console.log(

@@ -709,3 +709,96 @@ textarea {
         min-width: 100%;
     }
 }
+
+.hidden {
+    display: none !important;
+}
+
+
+.add-comment-panel {
+    margin-bottom: 20px;
+    padding: 20px;
+
+    border: 1px solid var(--border);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(18, 21, 26, 0.98),
+            rgba(8, 9, 11, 0.98)
+        );
+}
+
+
+.add-comment-panel h3 {
+    margin-bottom: 18px;
+
+    color: white;
+
+    font-family:
+        Impact,
+        "Arial Black",
+        sans-serif;
+
+    font-size: 22px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+}
+
+
+.add-comment-panel label {
+    display: block;
+
+    margin-top: 14px;
+    margin-bottom: 7px;
+
+    color: var(--orange);
+
+    font-size: 10px;
+
+    font-weight: 900;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1.5px;
+}
+
+
+.add-comment-panel select,
+.add-comment-panel input,
+.add-comment-panel textarea {
+    width: 100%;
+
+    padding: 12px;
+
+    background: #070809;
+
+    color: white;
+
+    border:
+        1px solid
+        rgba(255, 75, 11, 0.4);
+
+    outline: none;
+}
+
+
+.add-comment-panel textarea {
+    min-height: 120px;
+
+    resize: vertical;
+}
+
+
+.add-comment-panel select:focus,
+.add-comment-panel input:focus,
+.add-comment-panel textarea:focus {
+    border-color: var(--orange);
+}
+
+
+.add-comment-panel .inbox-actions {
+    margin-top: 18px;
+}

@@ -928,25 +928,125 @@ function openSocialAccountModal({
     );
 
 
-    continueButton.addEventListener(
-        "click",
-        () => {
+continueButton.addEventListener(
+    "click",
+    async () => {
 
-            console.log(
-                "SOCIAL CONNECTION REQUEST",
+        /*
+        ====================================================
+        META CONNECTION
+        ====================================================
+        */
+
+        if (
+            platform !== "facebook" &&
+            platform !== "instagram"
+        ) {
+
+            window.alert(
+                `${platformName} connection is not available yet.`
+            );
+
+            return;
+
+        }
+
+
+        continueButton.disabled =
+            true;
+
+
+        continueButton.textContent =
+            "Connecting...";
+
+
+        try {
+
+            /*
+            ================================================
+            START META OAUTH
+            ================================================
+            */
+
+           const response =
+            await MasterControlAPI.request(
+                `/api/meta/connect?businessId=${businessId}&platform=${encodeURIComponent(platform)}`,
                 {
-                    accountId,
-                    businessId,
-                    platform
+                    method:
+                        "GET"
                 }
             );
 
+
+            if (
+                !response ||
+                !response.authorizationUrl
+            ) {
+
+                throw new Error(
+                    "Meta authorization URL was not returned."
+                );
+
+            }
+
+
             /*
-             * OAuth connection will be added here.
-             */
+            ================================================
+            SAVE CONNECTION TARGET
+            ================================================
+
+            We keep track of which business/platform
+            initiated OAuth.
+
+            The signed server-side state still protects
+            the organization/tenant.
+            */
+
+            sessionStorage.setItem(
+                "masterControlMetaConnection",
+                JSON.stringify({
+                    accountId,
+                    businessId,
+                    platform
+                })
+            );
+
+
+            /*
+            ================================================
+            REDIRECT TO META
+            ================================================
+            */
+
+            window.location.href =
+                response.authorizationUrl;
 
         }
-    );
+        catch (error) {
+
+            console.error(
+                "Meta connection error:",
+                error
+            );
+
+
+            continueButton.disabled =
+                false;
+
+
+            continueButton.textContent =
+                `Connect ${platformName}`;
+
+
+            window.alert(
+                error.message ||
+                "Unable to start the Meta connection."
+            );
+
+        }
+
+    }
+);
 
 
     footer.appendChild(

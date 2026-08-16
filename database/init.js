@@ -150,8 +150,8 @@ function initializeDatabase() {
 
         We intentionally do NOT store access tokens here.
 
-        OAuth credentials will be handled separately when
-        real platform connectors are implemented.
+        OAuth credentials are stored separately in
+        social_oauth_connections.
         */
 
         CREATE TABLE IF NOT EXISTS social_accounts (
@@ -184,6 +184,60 @@ function initializeDatabase() {
             UNIQUE (
                 business_id,
                 platform
+            )
+
+        );
+
+
+        /*
+        ====================================================
+        SOCIAL OAUTH CONNECTIONS
+        ====================================================
+
+        Secure OAuth connection metadata.
+
+        Access and refresh tokens will be encrypted
+        before being written to this table.
+
+        One organization may have one OAuth connection
+        for each provider.
+        */
+
+        CREATE TABLE IF NOT EXISTS social_oauth_connections (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            organization_id INTEGER NOT NULL,
+
+            provider TEXT NOT NULL,
+
+            provider_user_id TEXT DEFAULT '',
+
+            provider_user_name TEXT DEFAULT '',
+
+            access_token_encrypted TEXT DEFAULT '',
+
+            refresh_token_encrypted TEXT DEFAULT '',
+
+            token_expires_at TEXT,
+
+            scopes TEXT DEFAULT '',
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (
+                organization_id
+            )
+            REFERENCES organizations(id)
+            ON DELETE CASCADE,
+
+            UNIQUE (
+                organization_id,
+                provider
             )
 
         );
@@ -538,10 +592,11 @@ function upgradeBusinessesTable() {
 LOCAL DEVELOPMENT USER + ORGANIZATION
 ====================================================
 
-For now this acts as the logged-in tenant.
+For now this acts as the local development tenant.
 
-Later this will be replaced by the real signup/login
-system.
+Real signup/login is now available, but this account
+is preserved so your original development data and
+business IDs remain intact.
 ====================================================
 */
 
@@ -849,6 +904,26 @@ function createIndexes() {
             idx_social_accounts_connected
         ON social_accounts(
             connected
+        );
+
+
+        /*
+        ====================================================
+        SOCIAL OAUTH CONNECTIONS
+        ====================================================
+        */
+
+        CREATE INDEX IF NOT EXISTS
+            idx_social_oauth_connections_organization
+        ON social_oauth_connections(
+            organization_id
+        );
+
+
+        CREATE INDEX IF NOT EXISTS
+            idx_social_oauth_connections_provider
+        ON social_oauth_connections(
+            provider
         );
 
     `);

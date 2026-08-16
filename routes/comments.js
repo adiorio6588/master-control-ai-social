@@ -1,8 +1,21 @@
-const express = require("express");
-const router = express.Router();
+const express =
+    require("express");
+
+const router =
+    express.Router();
 
 const database =
     require("../database/database");
+
+const {
+    generateReply
+} =
+    require("../services/openai");
+
+const {
+    findMatchingRule
+} =
+    require("../services/rulesEngine");
 
 
 /*
@@ -32,25 +45,18 @@ const allowedStatuses = [
 ====================================================
 GET /api/comments
 ====================================================
-
-Optional filters:
-
-/api/comments?businessId=2
-/api/comments?platform=facebook
-/api/comments?status=pending
-====================================================
 */
 
 router.get(
     "/comments",
     (req, res) => {
+
         try {
 
             const organizationId =
                 getCurrentOrganizationId(
                     req
                 );
-
 
             const businessId =
                 req.query.businessId
@@ -59,24 +65,16 @@ router.get(
                     )
                     : null;
 
-
             const platform =
                 normalizeText(
                     req.query.platform
                 );
-
 
             const status =
                 normalizeText(
                     req.query.status
                 );
 
-
-            /*
-            ============================================
-            VALIDATE FILTERS
-            ============================================
-            */
 
             if (
                 businessId !== null
@@ -136,12 +134,6 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            BUILD TENANT-SAFE QUERY
-            ============================================
-            */
-
             const conditions = [
                 "businesses.organization_id = ?"
             ];
@@ -166,9 +158,7 @@ router.get(
             }
 
 
-            if (
-                platform
-            ) {
+            if (platform) {
 
                 conditions.push(
                     "comments.platform = ?"
@@ -181,9 +171,7 @@ router.get(
             }
 
 
-            if (
-                status
-            ) {
+            if (status) {
 
                 conditions.push(
                     "comments.status = ?"
@@ -227,12 +215,10 @@ router.get(
 
                             comments.status,
 
-
                             COALESCE(
                                 comments.reply,
                                 replies.content
                             ) AS reply,
-
 
                             comments.source,
 
@@ -248,7 +234,6 @@ router.get(
 
                             comments.updated_at,
 
-
                             replies.id
                                 AS reply_id,
 
@@ -256,15 +241,12 @@ router.get(
 
                             replies.posted
 
-
                         FROM comments
-
 
                         INNER JOIN businesses
 
                             ON businesses.id =
                                 comments.business_id
-
 
                         LEFT JOIN replies
 
@@ -284,16 +266,12 @@ router.get(
                                     newest_reply.id DESC
 
                                 LIMIT 1
-
                             )
-
 
                         ${whereClause}
 
-
                         ORDER BY
                             comments.id DESC
-
 
                         LIMIT 100
                     `)
@@ -313,7 +291,6 @@ router.get(
                 "Load comments error:",
                 error
             );
-
 
             res
                 .status(500)
@@ -340,13 +317,13 @@ GET /api/comments/:id
 router.get(
     "/comments/:id",
     (req, res) => {
+
         try {
 
             const organizationId =
                 getCurrentOrganizationId(
                     req
                 );
-
 
             const commentId =
                 Number(
@@ -379,9 +356,7 @@ router.get(
                 );
 
 
-            if (
-                !comment
-            ) {
+            if (!comment) {
 
                 return res
                     .status(404)
@@ -405,7 +380,6 @@ router.get(
                 error
             );
 
-
             res
                 .status(500)
                 .json({
@@ -426,14 +400,12 @@ router.get(
 ====================================================
 POST /api/comments
 ====================================================
-
-Create a manual/test comment.
-====================================================
 */
 
 router.post(
     "/comments",
-    (req, res) => {
+    async (req, res) => {
+
         try {
 
             const organizationId =
@@ -469,24 +441,22 @@ router.post(
                 String(
                     author ||
                     "Customer"
-                ).trim()
+                )
+                    .trim()
                 ||
                 "Customer";
 
 
             const normalizedContent =
-                typeof content ===
-                    "string"
-
+                typeof content === "string"
                     ? content.trim()
-
                     : "";
 
 
             /*
-            ============================================
+            ====================================================
             VALIDATION
-            ============================================
+            ====================================================
             */
 
             if (
@@ -507,9 +477,7 @@ router.post(
             }
 
 
-            if (
-                !normalizedContent
-            ) {
+            if (!normalizedContent) {
 
                 return res
                     .status(400)
@@ -538,20 +506,28 @@ router.post(
 
 
             /*
-            ============================================
-            VERIFY BUSINESS OWNERSHIP
-            ============================================
+            ====================================================
+            VERIFY BUSINESS
+            ====================================================
             */
 
             const business =
                 database
                     .prepare(`
                         SELECT
-                            id
+
+                            id,
+
+                            name,
+
+                            emoji,
+
+                            prompt
 
                         FROM businesses
 
                         WHERE
+
                             id = ?
 
                             AND organization_id = ?
@@ -562,9 +538,7 @@ router.post(
                     );
 
 
-            if (
-                !business
-            ) {
+            if (!business) {
 
                 return res
                     .status(404)
@@ -577,9 +551,9 @@ router.post(
 
 
             /*
-            ============================================
+            ====================================================
             CREATE COMMENT
-            ============================================
+            ====================================================
             */
 
             const result =
@@ -606,7 +580,7 @@ router.post(
                             ?,
                             ?,
                             ?,
-                            ?,
+                            'pending',
                             CURRENT_TIMESTAMP
                         )
                     `)
@@ -618,20 +592,85 @@ router.post(
 
                         normalizedAuthor,
 
-                        normalizedContent,
-
-                        "pending"
+                        normalizedContent
 
                     );
 
 
+            const commentId =
+                Number(
+                    result.lastInsertRowid
+                );
+
+
+            /*
+            ====================================================
+            LOAD AUTOMATION SETTINGS
+            ====================================================
+            */
+
+            const automation =
+                getAutomationSettings(
+                    organizationId,
+                    numericBusinessId,
+                    normalizedPlatform
+                );
+
+
+            /*
+            ====================================================
+            AUTO GENERATE REPLY
+            ====================================================
+            */
+
+            if (
+                automation.autoGenerate
+            ) {
+
+                try {
+
+                    await generateAutomaticReply({
+
+                        organizationId,
+
+                        business,
+
+                        commentId,
+
+                        content:
+                            normalizedContent,
+
+                        useRules:
+                            automation.autoRules,
+
+                        requireApproval:
+                            automation.requireApproval
+
+                    });
+
+                }
+                catch (automationError) {
+
+                    console.error(
+                        "Automatic reply generation failed:",
+                        automationError
+                    );
+
+                }
+
+            }
+
+
+            /*
+            ====================================================
+            RESPONSE
+            ====================================================
+            */
+
             const comment =
                 getCommentById(
-
-                    result.lastInsertRowid,
-
+                    commentId,
                     organizationId
-
                 );
 
 
@@ -675,13 +714,13 @@ PUT /api/comments/:id
 router.put(
     "/comments/:id",
     (req, res) => {
+
         try {
 
             const organizationId =
                 getCurrentOrganizationId(
                     req
                 );
-
 
             const commentId =
                 Number(
@@ -714,9 +753,7 @@ router.put(
                 );
 
 
-            if (
-                !existingComment
-            ) {
+            if (!existingComment) {
 
                 return res
                     .status(404)
@@ -788,12 +825,6 @@ router.put(
                         .status;
 
 
-            /*
-            ============================================
-            VALIDATION
-            ============================================
-            */
-
             if (
                 !Number.isInteger(
                     Number(
@@ -816,9 +847,7 @@ router.put(
             }
 
 
-            if (
-                !content
-            ) {
+            if (!content) {
 
                 return res
                     .status(400)
@@ -862,12 +891,6 @@ router.put(
             }
 
 
-            /*
-            ============================================
-            VERIFY TARGET BUSINESS OWNERSHIP
-            ============================================
-            */
-
             const business =
                 database
                     .prepare(`
@@ -877,24 +900,20 @@ router.put(
                         FROM businesses
 
                         WHERE
+
                             id = ?
 
                             AND organization_id = ?
                     `)
                     .get(
-
                         Number(
                             businessId
                         ),
-
                         organizationId
-
                     );
 
 
-            if (
-                !business
-            ) {
+            if (!business) {
 
                 return res
                     .status(404)
@@ -905,12 +924,6 @@ router.put(
 
             }
 
-
-            /*
-            ============================================
-            UPDATE COMMENT
-            ============================================
-            */
 
             const result =
                 database
@@ -932,7 +945,6 @@ router.put(
                             updated_at =
                                 CURRENT_TIMESTAMP
 
-
                         WHERE
 
                             id = ?
@@ -944,11 +956,11 @@ router.put(
                                 FROM businesses
 
                                 WHERE
+
                                     businesses.id =
                                         comments.business_id
 
                                     AND businesses.organization_id = ?
-
                             )
                     `)
                     .run(
@@ -1028,6 +1040,7 @@ POST /api/comments/:id/reply
 router.post(
     "/comments/:id/reply",
     (req, res) => {
+
         try {
 
             const organizationId =
@@ -1035,12 +1048,10 @@ router.post(
                     req
                 );
 
-
             const commentId =
                 Number(
                     req.params.id
                 );
-
 
             const reply =
                 typeof req.body.reply ===
@@ -1069,9 +1080,7 @@ router.post(
             }
 
 
-            if (
-                !reply
-            ) {
+            if (!reply) {
 
                 return res
                     .status(400)
@@ -1090,9 +1099,7 @@ router.post(
                 );
 
 
-            if (
-                !comment
-            ) {
+            if (!comment) {
 
                 return res
                     .status(404)
@@ -1128,12 +1135,10 @@ router.post(
 
                                                 ELSE
                                                     status
-
                                             END,
 
                                         updated_at =
                                             CURRENT_TIMESTAMP
-
 
                                     WHERE
 
@@ -1151,7 +1156,6 @@ router.post(
                                                     comments.business_id
 
                                                 AND businesses.organization_id = ?
-
                                         )
                                 `)
                                 .run(
@@ -1269,6 +1273,7 @@ PATCH /api/comments/:id/status
 router.patch(
     "/comments/:id/status",
     (req, res) => {
+
         try {
 
             const organizationId =
@@ -1276,12 +1281,10 @@ router.patch(
                     req
                 );
 
-
             const commentId =
                 Number(
                     req.params.id
                 );
-
 
             const status =
                 normalizeText(
@@ -1330,9 +1333,7 @@ router.patch(
                 );
 
 
-            if (
-                !existingComment
-            ) {
+            if (!existingComment) {
 
                 return res
                     .status(404)
@@ -1343,12 +1344,6 @@ router.patch(
 
             }
 
-
-            /*
-            ============================================
-            REQUIRE REPLY BEFORE APPROVED / POSTED
-            ============================================
-            */
 
             if (
                 (
@@ -1377,12 +1372,6 @@ router.patch(
             }
 
 
-            /*
-            ============================================
-            REQUIRE APPROVAL BEFORE POSTED
-            ============================================
-            */
-
             if (
                 status ===
                     "posted"
@@ -1406,12 +1395,6 @@ router.patch(
             }
 
 
-            /*
-            ============================================
-            UPDATE STATUS
-            ============================================
-            */
-
             const result =
                 database
                     .prepare(`
@@ -1423,7 +1406,6 @@ router.patch(
 
                             updated_at =
                                 CURRENT_TIMESTAMP
-
 
                         WHERE
 
@@ -1441,7 +1423,6 @@ router.patch(
                                         comments.business_id
 
                                     AND businesses.organization_id = ?
-
                             )
                     `)
                     .run(
@@ -1468,12 +1449,6 @@ router.patch(
 
             }
 
-
-            /*
-            ============================================
-            UPDATE LATEST REPLY STATUS
-            ============================================
-            */
 
             const latestReply =
                 database
@@ -1513,9 +1488,7 @@ router.patch(
                     );
 
 
-            if (
-                latestReply
-            ) {
+            if (latestReply) {
 
                 if (
                     status ===
@@ -1640,13 +1613,13 @@ DELETE /api/comments/:id
 router.delete(
     "/comments/:id",
     (req, res) => {
+
         try {
 
             const organizationId =
                 getCurrentOrganizationId(
                     req
                 );
-
 
             const commentId =
                 Number(
@@ -1679,9 +1652,7 @@ router.delete(
                 );
 
 
-            if (
-                !comment
-            ) {
+            if (!comment) {
 
                 return res
                     .status(404)
@@ -1729,7 +1700,6 @@ router.delete(
                                                     comments.business_id
 
                                                 AND businesses.organization_id = ?
-
                                         )
                                 `)
                                 .run(
@@ -1796,6 +1766,418 @@ router.delete(
 
 /*
 ====================================================
+GENERATE AUTOMATIC REPLY
+====================================================
+*/
+
+async function generateAutomaticReply({
+    organizationId,
+    business,
+    commentId,
+    content,
+    useRules,
+    requireApproval
+}) {
+
+    const startedAt =
+        Date.now();
+
+
+    let reply;
+
+    let source =
+        "GPT";
+
+    let ruleName =
+        null;
+
+    let confidence =
+        null;
+
+    let estimatedCost =
+        null;
+
+
+    /*
+    ====================================================
+    RULE ENGINE
+    ====================================================
+    */
+
+    if (useRules) {
+
+        const ruleResult =
+            findMatchingRule(
+                business.id,
+                content
+            );
+
+
+        if (
+            ruleResult.matched
+        ) {
+
+            reply =
+                ruleResult.reply;
+
+            source =
+                "RULE";
+
+            ruleName =
+                ruleResult.ruleName;
+
+            confidence =
+                100;
+
+            estimatedCost =
+                0;
+
+        }
+
+    }
+
+
+    /*
+    ====================================================
+    GPT FALLBACK
+    ====================================================
+    */
+
+    if (!reply) {
+
+        reply =
+            await generateReply(
+                business.prompt,
+                content
+            );
+
+        source =
+            "GPT";
+
+    }
+
+
+    const processingTime =
+        Date.now() -
+        startedAt;
+
+
+    /*
+    ====================================================
+    APPROVAL BEHAVIOR
+    ====================================================
+    */
+
+    const finalStatus =
+        requireApproval
+            ? "replied"
+            : "approved";
+
+
+    const approved =
+        requireApproval
+            ? 0
+            : 1;
+
+
+    /*
+    ====================================================
+    SAVE AUTOMATIC REPLY
+    ====================================================
+    */
+
+    database.transaction(
+        () => {
+
+            const updateResult =
+                database
+                    .prepare(`
+                        UPDATE comments
+
+                        SET
+
+                            reply = ?,
+
+                            source = ?,
+
+                            rule = ?,
+
+                            confidence = ?,
+
+                            processing_time = ?,
+
+                            estimated_cost = ?,
+
+                            status = ?,
+
+                            updated_at =
+                                CURRENT_TIMESTAMP
+
+                        WHERE
+
+                            id = ?
+
+                            AND EXISTS (
+
+                                SELECT 1
+
+                                FROM businesses
+
+                                WHERE
+
+                                    businesses.id =
+                                        comments.business_id
+
+                                    AND businesses.organization_id = ?
+                            )
+                    `)
+                    .run(
+
+                        reply,
+
+                        source,
+
+                        ruleName,
+
+                        confidence,
+
+                        processingTime,
+
+                        estimatedCost,
+
+                        finalStatus,
+
+                        commentId,
+
+                        organizationId
+
+                    );
+
+
+            if (
+                updateResult.changes ===
+                0
+            ) {
+
+                throw new Error(
+                    "Unable to save automatic reply."
+                );
+
+            }
+
+
+            database
+                .prepare(`
+                    INSERT INTO replies (
+
+                        comment_id,
+
+                        content,
+
+                        approved,
+
+                        posted
+
+                    )
+
+                    VALUES (
+                        ?,
+                        ?,
+                        ?,
+                        0
+                    )
+                `)
+                .run(
+
+                    commentId,
+
+                    reply,
+
+                    approved
+
+                );
+
+        }
+    )();
+
+
+    return reply;
+
+}
+
+
+/*
+====================================================
+AUTOMATION SETTINGS
+====================================================
+*/
+
+function getAutomationSettings(
+    organizationId,
+    businessId,
+    platform
+) {
+
+    const platformKey =
+        getAutomationKey(
+            organizationId,
+            businessId,
+            platform
+        );
+
+
+    let row =
+        database
+            .prepare(`
+                SELECT value
+
+                FROM settings
+
+                WHERE key = ?
+            `)
+            .get(
+                platformKey
+            );
+
+
+    /*
+    ====================================================
+    FALL BACK TO ALL PLATFORMS
+    ====================================================
+    */
+
+    if (
+        !row
+        &&
+        platform !== "all"
+    ) {
+
+        const allPlatformsKey =
+            getAutomationKey(
+                organizationId,
+                businessId,
+                "all"
+            );
+
+
+        row =
+            database
+                .prepare(`
+                    SELECT value
+
+                    FROM settings
+
+                    WHERE key = ?
+                `)
+                .get(
+                    allPlatformsKey
+                );
+
+    }
+
+
+    if (!row) {
+
+        return {
+
+            autoGenerate:
+                false,
+
+            requireApproval:
+                true,
+
+            autoRules:
+                false,
+
+            autoPost:
+                false
+
+        };
+
+    }
+
+
+    try {
+
+        const settings =
+            JSON.parse(
+                row.value
+            );
+
+
+        return {
+
+            autoGenerate:
+                Boolean(
+                    settings.autoGenerate
+                ),
+
+            requireApproval:
+                settings.requireApproval !==
+                false,
+
+            autoRules:
+                Boolean(
+                    settings.autoRules
+                ),
+
+            autoPost:
+                Boolean(
+                    settings.autoPost
+                )
+
+        };
+
+    }
+    catch {
+
+        return {
+
+            autoGenerate:
+                false,
+
+            requireApproval:
+                true,
+
+            autoRules:
+                false,
+
+            autoPost:
+                false
+
+        };
+
+    }
+
+}
+
+
+/*
+====================================================
+AUTOMATION KEY
+====================================================
+*/
+
+function getAutomationKey(
+    organizationId,
+    businessId,
+    platform
+) {
+
+    return (
+        "automation:" +
+        organizationId +
+        ":" +
+        businessId +
+        ":" +
+        platform
+    );
+
+}
+
+
+/*
+====================================================
 GET COMMENT BY ID
 ====================================================
 */
@@ -1829,12 +2211,10 @@ function getCommentById(
 
                 comments.status,
 
-
                 COALESCE(
                     comments.reply,
                     replies.content
                 ) AS reply,
-
 
                 comments.source,
 
@@ -1850,7 +2230,6 @@ function getCommentById(
 
                 comments.updated_at,
 
-
                 replies.id
                     AS reply_id,
 
@@ -1858,15 +2237,12 @@ function getCommentById(
 
                 replies.posted
 
-
             FROM comments
-
 
             INNER JOIN businesses
 
                 ON businesses.id =
                     comments.business_id
-
 
             LEFT JOIN replies
 
@@ -1886,9 +2262,7 @@ function getCommentById(
                         newest_reply.id DESC
 
                     LIMIT 1
-
                 )
-
 
             WHERE
 

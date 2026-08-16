@@ -18,27 +18,25 @@ let selectedCommentId = null;
 let activeStatus = "all";
 let searchTerm = "";
 
+
 /*
- * Load comments from the backend.
- */
+====================================================
+LOAD COMMENTS
+====================================================
+*/
+
 async function loadComments() {
     renderLoadingState();
     setRefreshState(true);
 
     try {
-        const response = await fetch("/api/comments");
-        const result = await response.json();
+        comments =
+            await MasterControlAPI.getComments();
 
-        if (!response.ok) {
-            throw new Error(
-                result.error ||
-                "Unable to load inbox comments."
-            );
-        }
-
-        comments = Array.isArray(result)
-            ? result
-            : [];
+        comments =
+            Array.isArray(comments)
+                ? comments
+                : [];
 
         updateStatusCounts();
         renderComments();
@@ -62,7 +60,8 @@ async function loadComments() {
         } else {
             renderEmptyDetails();
         }
-    } catch (error) {
+    }
+    catch (error) {
         console.error(
             "Inbox loading error:",
             error
@@ -74,33 +73,46 @@ async function loadComments() {
 
         commentsPanel.innerHTML = `
             <div class="panel-header">
-                <h2>Social Inbox</h2>
+
+                <h2>
+                    Social Inbox
+                </h2>
 
                 <span class="count-badge">
                     ERR
                 </span>
+
             </div>
 
             <div class="empty-state">
+
                 <div class="empty-icon">
                     ⚠️
                 </div>
 
-                <h3>Unable to Load Inbox</h3>
+                <h3>
+                    Unable to Load Inbox
+                </h3>
 
                 <p>
                     ${escapeHtml(error.message)}
                 </p>
+
             </div>
         `;
-    } finally {
+    }
+    finally {
         setRefreshState(false);
     }
 }
 
+
 /*
- * Display loading state.
- */
+====================================================
+LOADING STATE
+====================================================
+*/
+
 function renderLoadingState() {
     if (!commentsPanel) {
         return;
@@ -108,71 +120,93 @@ function renderLoadingState() {
 
     commentsPanel.innerHTML = `
         <div class="panel-header">
-            <h2>Loading Comments</h2>
+
+            <h2>
+                Loading Comments
+            </h2>
 
             <span class="count-badge">
                 ...
             </span>
+
         </div>
 
         <div class="empty-state">
+
             <div class="empty-icon">
                 ⏳
             </div>
 
-            <h3>Loading Inbox</h3>
+            <h3>
+                Loading Inbox
+            </h3>
 
             <p>
                 Retrieving comments from Master Control.
             </p>
+
         </div>
     `;
 }
 
+
 /*
- * Apply search and status filters.
- */
+====================================================
+FILTER COMMENTS
+====================================================
+*/
+
 function getVisibleComments() {
-    return comments.filter((comment) => {
-        const normalizedStatus =
-            String(
-                comment.status || "pending"
-            ).toLowerCase();
+    return comments.filter(
+        (comment) => {
 
-        const matchesStatus =
-            activeStatus === "all" ||
-            normalizedStatus === activeStatus;
+            const normalizedStatus =
+                String(
+                    comment.status ||
+                    "pending"
+                ).toLowerCase();
 
-        if (!matchesStatus) {
-            return false;
+            const matchesStatus =
+                activeStatus === "all" ||
+                normalizedStatus ===
+                activeStatus;
+
+            if (!matchesStatus) {
+                return false;
+            }
+
+            if (!searchTerm) {
+                return true;
+            }
+
+            const searchableText = [
+                comment.author,
+                comment.content,
+                comment.business_name,
+                comment.platform,
+                comment.reply,
+                comment.rule,
+                comment.source
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            return searchableText.includes(
+                searchTerm
+            );
+
         }
-
-        if (!searchTerm) {
-            return true;
-        }
-
-        const searchableText = [
-            comment.author,
-            comment.content,
-            comment.business_name,
-            comment.platform,
-            comment.reply,
-            comment.rule,
-            comment.source
-        ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-
-        return searchableText.includes(
-            searchTerm
-        );
-    });
+    );
 }
 
+
 /*
- * Render inbox comment cards.
- */
+====================================================
+RENDER COMMENTS
+====================================================
+*/
+
 function renderComments() {
     if (!commentsPanel) {
         return;
@@ -188,6 +222,7 @@ function renderComments() {
 
     commentsPanel.innerHTML = `
         <div class="panel-header">
+
             <h2 id="comments-panel-title">
                 ${escapeHtml(title)}
             </h2>
@@ -198,6 +233,7 @@ function renderComments() {
             >
                 ${visibleComments.length}
             </span>
+
         </div>
 
         <div
@@ -218,102 +254,130 @@ function renderComments() {
     if (!visibleComments.length) {
         commentList.innerHTML = `
             <div class="empty-state">
+
                 <div class="empty-icon">
                     💬
                 </div>
 
-                <h3>No Matching Comments</h3>
+                <h3>
+                    No Matching Comments
+                </h3>
 
                 <p>
                     No comments match the current
                     status filter or search.
                 </p>
+
             </div>
         `;
 
         return;
     }
 
-    visibleComments.forEach((comment) => {
-        const card =
-            document.createElement("button");
+    visibleComments.forEach(
+        (comment) => {
 
-        card.type = "button";
-        card.className = "comment-card";
+            const card =
+                document.createElement(
+                    "button"
+                );
 
-        if (
-            Number(comment.id) ===
-            Number(selectedCommentId)
-        ) {
-            card.classList.add("selected");
-        }
+            card.type = "button";
 
-        const status =
-            String(
-                comment.status || "pending"
-            ).toLowerCase();
+            card.className =
+                "comment-card";
 
-        const businessLabel =
-            `${comment.business_emoji || "🏢"} ` +
-            `${comment.business_name || "Unknown Business"}`;
-
-        card.innerHTML = `
-            <div class="comment-card-top">
-
-                <div class="platform-icon">
-                    ${getPlatformIcon(
-                        comment.platform
-                    )}
-                </div>
-
-                <div class="comment-author">
-                    <strong>
-                        ${escapeHtml(
-                            comment.author ||
-                            "Customer"
-                        )}
-                    </strong>
-
-                    <small>
-                        ${escapeHtml(businessLabel)}
-                        //
-                        ${escapeHtml(
-                            formatPlatformName(
-                                comment.platform
-                            )
-                        )}
-                    </small>
-                </div>
-
-                <span
-                    class="status-badge ${escapeHtml(status)}"
-                >
-                    ${escapeHtml(status)}
-                </span>
-
-            </div>
-
-            <p class="comment-preview">
-                ${escapeHtml(
-                    comment.content || ""
-                )}
-            </p>
-        `;
-
-        card.addEventListener(
-            "click",
-            () => {
-                selectComment(comment.id);
+            if (
+                Number(comment.id) ===
+                Number(selectedCommentId)
+            ) {
+                card.classList.add(
+                    "selected"
+                );
             }
-        );
 
-        commentList.appendChild(card);
-    });
+            const status =
+                String(
+                    comment.status ||
+                    "pending"
+                ).toLowerCase();
+
+            const businessLabel =
+                `${comment.business_emoji || "🏢"} ` +
+                `${comment.business_name || "Unknown Business"}`;
+
+            card.innerHTML = `
+                <div class="comment-card-top">
+
+                    <div class="platform-icon">
+                        ${getPlatformIcon(
+                            comment.platform
+                        )}
+                    </div>
+
+                    <div class="comment-author">
+
+                        <strong>
+                            ${escapeHtml(
+                                comment.author ||
+                                "Customer"
+                            )}
+                        </strong>
+
+                        <small>
+                            ${escapeHtml(
+                                businessLabel
+                            )}
+                            //
+                            ${escapeHtml(
+                                formatPlatformName(
+                                    comment.platform
+                                )
+                            )}
+                        </small>
+
+                    </div>
+
+                    <span
+                        class="status-badge ${escapeHtml(status)}"
+                    >
+                        ${escapeHtml(status)}
+                    </span>
+
+                </div>
+
+                <p class="comment-preview">
+                    ${escapeHtml(
+                        comment.content ||
+                        ""
+                    )}
+                </p>
+            `;
+
+            card.addEventListener(
+                "click",
+                () => {
+                    selectComment(
+                        comment.id
+                    );
+                }
+            );
+
+            commentList.appendChild(
+                card
+            );
+
+        }
+    );
 }
 
+
 /*
- * Select a comment.
- */
+====================================================
+SELECT COMMENT
+====================================================
+*/
+
 function selectComment(commentId) {
     const comment =
         comments.find(
@@ -326,15 +390,23 @@ function selectComment(commentId) {
         return;
     }
 
-    selectedCommentId = comment.id;
+    selectedCommentId =
+        comment.id;
 
     renderComments();
-    renderCommentDetails(comment);
+
+    renderCommentDetails(
+        comment
+    );
 }
 
+
 /*
- * Render the right-side detail panel.
- */
+====================================================
+RENDER COMMENT DETAILS
+====================================================
+*/
+
 function renderCommentDetails(comment) {
     if (!detailsPanel) {
         return;
@@ -342,7 +414,8 @@ function renderCommentDetails(comment) {
 
     const status =
         String(
-            comment.status || "pending"
+            comment.status ||
+            "pending"
         ).toLowerCase();
 
     const businessLabel =
@@ -382,7 +455,9 @@ function renderCommentDetails(comment) {
     detailsPanel.innerHTML = `
         <div class="panel-header">
 
-            <h2>AI Assistant</h2>
+            <h2>
+                AI Assistant
+            </h2>
 
             <span
                 class="status-badge ${escapeHtml(status)}"
@@ -395,18 +470,22 @@ function renderCommentDetails(comment) {
         ${renderWorkflow(status)}
 
         <div class="detail-section">
+
             <span class="detail-label">
                 Customer
             </span>
 
             <div class="detail-value">
                 ${escapeHtml(
-                    comment.author || "Customer"
+                    comment.author ||
+                    "Customer"
                 )}
             </div>
+
         </div>
 
         <div class="detail-section">
+
             <span class="detail-label">
                 Platform
             </span>
@@ -421,21 +500,26 @@ function renderCommentDetails(comment) {
                     )
                 )}
             </div>
+
         </div>
 
         <div class="detail-section">
+
             <span class="detail-label">
                 Incoming Comment
             </span>
 
             <div class="detail-value">
                 ${escapeHtml(
-                    comment.content || ""
+                    comment.content ||
+                    ""
                 )}
             </div>
+
         </div>
 
         <div class="detail-section">
+
             <span class="detail-label">
                 AI Analysis
             </span>
@@ -443,15 +527,24 @@ function renderCommentDetails(comment) {
             <div class="decision-grid">
 
                 <article class="decision-item">
-                    <span>Business</span>
+
+                    <span>
+                        Business
+                    </span>
 
                     <strong>
-                        ${escapeHtml(businessLabel)}
+                        ${escapeHtml(
+                            businessLabel
+                        )}
                     </strong>
+
                 </article>
 
                 <article class="decision-item">
-                    <span>Decision Source</span>
+
+                    <span>
+                        Decision Source
+                    </span>
 
                     <strong>
                         ${escapeHtml(
@@ -460,48 +553,71 @@ function renderCommentDetails(comment) {
                             )
                         )}
                     </strong>
+
                 </article>
 
                 <article class="decision-item">
-                    <span>Matched Rule</span>
+
+                    <span>
+                        Matched Rule
+                    </span>
 
                     <strong>
-                        ${escapeHtml(ruleName)}
+                        ${escapeHtml(
+                            ruleName
+                        )}
                     </strong>
+
                 </article>
 
                 <article class="decision-item">
-                    <span>Confidence</span>
+
+                    <span>
+                        Confidence
+                    </span>
 
                     <strong>
-                        ${escapeHtml(confidence)}
+                        ${escapeHtml(
+                            confidence
+                        )}
                     </strong>
+
                 </article>
 
                 <article class="decision-item">
-                    <span>Processing Time</span>
+
+                    <span>
+                        Processing Time
+                    </span>
 
                     <strong>
                         ${escapeHtml(
                             processingTime
                         )}
                     </strong>
+
                 </article>
 
                 <article class="decision-item">
-                    <span>Estimated API Cost</span>
+
+                    <span>
+                        Estimated API Cost
+                    </span>
 
                     <strong>
                         ${escapeHtml(
                             estimatedCost
                         )}
                     </strong>
+
                 </article>
 
             </div>
+
         </div>
 
         <div class="detail-section">
+
             <span class="detail-label">
                 Suggested Reply
             </span>
@@ -513,6 +629,7 @@ function renderCommentDetails(comment) {
             >${escapeHtml(
                 comment.reply || ""
             )}</textarea>
+
         </div>
 
         <div class="inbox-actions">
@@ -576,12 +693,18 @@ function renderCommentDetails(comment) {
         </div>
     `;
 
-    attachDetailEvents(comment);
+    attachDetailEvents(
+        comment
+    );
 }
 
+
 /*
- * Render approval workflow steps.
- */
+====================================================
+WORKFLOW
+====================================================
+*/
+
 function renderWorkflow(status) {
     const steps = [
         {
@@ -604,7 +727,8 @@ function renderWorkflow(status) {
 
     const currentIndex =
         steps.findIndex(
-            (step) => step.key === status
+            (step) =>
+                step.key === status
         );
 
     const ignored =
@@ -621,6 +745,7 @@ function renderWorkflow(status) {
 
                 ${steps.map(
                     (step, index) => {
+
                         const completed =
                             !ignored &&
                             currentIndex >= index;
@@ -635,6 +760,7 @@ function renderWorkflow(status) {
                                 ${completed ? "completed" : ""}
                                 ${active ? "active" : ""}"
                             >
+
                                 <span>
                                     ${index + 1}
                                 </span>
@@ -642,8 +768,10 @@ function renderWorkflow(status) {
                                 <strong>
                                     ${step.label}
                                 </strong>
+
                             </div>
                         `;
+
                     }
                 ).join("")}
 
@@ -663,9 +791,13 @@ function renderWorkflow(status) {
     `;
 }
 
+
 /*
- * Empty detail panel.
- */
+====================================================
+EMPTY DETAILS
+====================================================
+*/
+
 function renderEmptyDetails() {
     if (!detailsPanel) {
         return;
@@ -673,24 +805,36 @@ function renderEmptyDetails() {
 
     detailsPanel.innerHTML = `
         <div class="panel-header">
-            <h2>AI Assistant</h2>
+
+            <h2>
+                AI Assistant
+            </h2>
+
         </div>
 
         <div class="placeholder-card">
-            <h3>Waiting for a Comment</h3>
+
+            <h3>
+                Waiting for a Comment
+            </h3>
 
             <p>
                 Select a comment to review its AI
                 analysis, suggested reply, and
                 approval workflow.
             </p>
+
         </div>
     `;
 }
 
+
 /*
- * Attach action buttons.
- */
+====================================================
+DETAIL EVENTS
+====================================================
+*/
+
 function attachDetailEvents(comment) {
     const generateButton =
         document.getElementById(
@@ -801,15 +945,21 @@ function attachDetailEvents(comment) {
         deleteButton.addEventListener(
             "click",
             () => {
-                deleteComment(comment);
+                deleteComment(
+                    comment
+                );
             }
         );
     }
 }
 
+
 /*
- * Generate AI or rule reply.
- */
+====================================================
+GENERATE REPLY
+====================================================
+*/
+
 async function generateReplyForComment(
     comment
 ) {
@@ -823,58 +973,53 @@ async function generateReplyForComment(
     }
 
     button.disabled = true;
-    button.textContent = "Generating...";
+    button.textContent =
+        "Generating...";
 
     try {
-        const response =
-            await fetch("/api/reply", {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-                    commentId: comment.id,
-                    comment: comment.content,
-                    businessId:
-                        comment.business_id
-                })
-            });
-
         const result =
-            await response.json();
+            await MasterControlAPI.generateReply({
+                commentId:
+                    comment.id,
 
-        if (!response.ok) {
-            throw new Error(
-                result.error ||
-                "Unable to generate reply."
-            );
-        }
+                comment:
+                    comment.content,
+
+                businessId:
+                    comment.business_id
+            });
 
         selectedCommentId =
             result.commentId ||
             comment.id;
 
         await loadComments();
-    } catch (error) {
+    }
+    catch (error) {
         console.error(
             "Generate reply error:",
             error
         );
 
-        alert(error.message);
-    } finally {
+        alert(
+            error.message
+        );
+    }
+    finally {
         button.disabled = false;
+
         button.textContent =
             "Generate Reply";
     }
 }
 
+
 /*
- * Save manually edited reply.
- */
+====================================================
+SAVE REPLY
+====================================================
+*/
+
 async function saveReplyForComment(
     commentId
 ) {
@@ -899,99 +1044,69 @@ async function saveReplyForComment(
     }
 
     try {
-        const response =
-            await fetch(
-                `/api/comments/${commentId}/reply`,
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        reply
-                    })
-                }
-            );
-
-        const result =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                result.error ||
-                "Unable to save reply."
-            );
-        }
+        await MasterControlAPI.saveReply(
+            commentId,
+            reply
+        );
 
         selectedCommentId =
             commentId;
 
         await loadComments();
-    } catch (error) {
+    }
+    catch (error) {
         console.error(
             "Save reply error:",
             error
         );
 
-        alert(error.message);
+        alert(
+            error.message
+        );
     }
 }
 
+
 /*
- * Update comment status.
- */
+====================================================
+UPDATE STATUS
+====================================================
+*/
+
 async function updateCommentStatus(
     commentId,
     status
 ) {
     try {
-        const response =
-            await fetch(
-                `/api/comments/${commentId}/status`,
-                {
-                    method: "PATCH",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        status
-                    })
-                }
-            );
-
-        const result =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                result.error ||
-                "Unable to update status."
-            );
-        }
+        await MasterControlAPI.updateCommentStatus(
+            commentId,
+            status
+        );
 
         selectedCommentId =
             commentId;
 
         await loadComments();
-    } catch (error) {
+    }
+    catch (error) {
         console.error(
             "Status update error:",
             error
         );
 
-        alert(error.message);
+        alert(
+            error.message
+        );
     }
 }
 
+
 /*
- * Delete a comment.
- */
+====================================================
+DELETE COMMENT
+====================================================
+*/
+
 async function deleteComment(comment) {
     const confirmed =
         window.confirm(
@@ -1006,40 +1121,34 @@ async function deleteComment(comment) {
     }
 
     try {
-        const response =
-            await fetch(
-                `/api/comments/${comment.id}`,
-                {
-                    method: "DELETE"
-                }
-            );
+        await MasterControlAPI.deleteComment(
+            comment.id
+        );
 
-        const result =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                result.error ||
-                "Unable to delete comment."
-            );
-        }
-
-        selectedCommentId = null;
+        selectedCommentId =
+            null;
 
         await loadComments();
-    } catch (error) {
+    }
+    catch (error) {
         console.error(
             "Delete comment error:",
             error
         );
 
-        alert(error.message);
+        alert(
+            error.message
+        );
     }
 }
 
+
 /*
- * Update toolbar counts.
- */
+====================================================
+STATUS COUNTS
+====================================================
+*/
+
 function updateStatusCounts() {
     const statuses = [
         "pending",
@@ -1054,83 +1163,112 @@ function updateStatusCounts() {
         comments.length
     );
 
-    statuses.forEach((status) => {
-        const count =
-            comments.filter(
-                (comment) =>
-                    String(
-                        comment.status ||
-                        "pending"
-                    ).toLowerCase() ===
-                    status
-            ).length;
+    statuses.forEach(
+        (status) => {
 
-        setCount(
-            `count-${status}`,
-            count
-        );
-    });
+            const count =
+                comments.filter(
+                    (comment) =>
+                        String(
+                            comment.status ||
+                            "pending"
+                        ).toLowerCase() ===
+                        status
+                ).length;
+
+            setCount(
+                `count-${status}`,
+                count
+            );
+
+        }
+    );
 }
 
-function setCount(elementId, value) {
+
+function setCount(
+    elementId,
+    value
+) {
     const element =
         document.getElementById(
             elementId
         );
 
     if (element) {
-        element.textContent = value;
+        element.textContent =
+            value;
     }
 }
 
-/*
- * Filter buttons.
- */
-filterButtons.forEach((button) => {
-    button.addEventListener(
-        "click",
-        () => {
-            activeStatus =
-                button.dataset.status ||
-                "all";
-
-            filterButtons.forEach(
-                (item) => {
-                    item.classList.remove(
-                        "active"
-                    );
-                }
-            );
-
-            button.classList.add(
-                "active"
-            );
-
-            renderComments();
-        }
-    );
-});
 
 /*
- * Search input.
- */
+====================================================
+FILTER BUTTONS
+====================================================
+*/
+
+filterButtons.forEach(
+    (button) => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                activeStatus =
+                    button.dataset.status ||
+                    "all";
+
+                filterButtons.forEach(
+                    (item) => {
+                        item.classList.remove(
+                            "active"
+                        );
+                    }
+                );
+
+                button.classList.add(
+                    "active"
+                );
+
+                renderComments();
+
+            }
+        );
+
+    }
+);
+
+
+/*
+====================================================
+SEARCH
+====================================================
+*/
+
 if (searchInput) {
     searchInput.addEventListener(
         "input",
         () => {
+
             searchTerm =
                 searchInput.value
                     .trim()
                     .toLowerCase();
 
             renderComments();
+
         }
     );
 }
 
+
 /*
- * Refresh button.
- */
+====================================================
+REFRESH
+====================================================
+*/
+
 if (refreshButton) {
     refreshButton.addEventListener(
         "click",
@@ -1138,7 +1276,10 @@ if (refreshButton) {
     );
 }
 
-function setRefreshState(isLoading) {
+
+function setRefreshState(
+    isLoading
+) {
     if (!refreshButton) {
         return;
     }
@@ -1152,10 +1293,255 @@ function setRefreshState(isLoading) {
             : "Refresh";
 }
 
+
 /*
- * Display helpers.
- */
-function getPlatformIcon(platform = "") {
+====================================================
+MANUAL COMMENT FORM
+====================================================
+*/
+
+const openAddCommentButton =
+    document.getElementById(
+        "open-add-comment"
+    );
+
+const addCommentPanel =
+    document.getElementById(
+        "add-comment-panel"
+    );
+
+const cancelManualCommentButton =
+    document.getElementById(
+        "cancel-manual-comment"
+    );
+
+const saveManualCommentButton =
+    document.getElementById(
+        "save-manual-comment"
+    );
+
+const manualBusiness =
+    document.getElementById(
+        "manual-business"
+    );
+
+const manualPlatform =
+    document.getElementById(
+        "manual-platform"
+    );
+
+const manualAuthor =
+    document.getElementById(
+        "manual-author"
+    );
+
+const manualContent =
+    document.getElementById(
+        "manual-content"
+    );
+
+
+/*
+====================================================
+LOAD BUSINESSES
+====================================================
+*/
+
+async function loadManualBusinesses() {
+    if (!manualBusiness) {
+        return;
+    }
+
+    try {
+        const businesses =
+            await MasterControlAPI.getBusinesses();
+
+        manualBusiness.innerHTML = `
+            <option value="">
+                Select Business
+            </option>
+        `;
+
+        businesses.forEach(
+            (business) => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    business.id;
+
+                option.textContent =
+                    `${business.emoji || "🏢"} ${business.name}`;
+
+                manualBusiness.appendChild(
+                    option
+                );
+
+            }
+        );
+    }
+    catch (error) {
+        console.error(
+            "Business loading error:",
+            error
+        );
+
+        alert(
+            error.message
+        );
+    }
+}
+
+
+/*
+====================================================
+OPEN FORM
+====================================================
+*/
+
+if (openAddCommentButton) {
+    openAddCommentButton.addEventListener(
+        "click",
+        () => {
+
+            addCommentPanel.classList.remove(
+                "hidden"
+            );
+
+            loadManualBusinesses();
+
+        }
+    );
+}
+
+
+/*
+====================================================
+CANCEL FORM
+====================================================
+*/
+
+if (cancelManualCommentButton) {
+    cancelManualCommentButton.addEventListener(
+        "click",
+        () => {
+
+            addCommentPanel.classList.add(
+                "hidden"
+            );
+
+        }
+    );
+}
+
+
+/*
+====================================================
+CREATE MANUAL COMMENT
+====================================================
+*/
+
+if (saveManualCommentButton) {
+    saveManualCommentButton.addEventListener(
+        "click",
+        async () => {
+
+            const businessId =
+                Number(
+                    manualBusiness.value
+                );
+
+            const platform =
+                manualPlatform.value;
+
+            const author =
+                manualAuthor.value.trim() ||
+                "Customer";
+
+            const content =
+                manualContent.value.trim();
+
+            if (!businessId) {
+                alert(
+                    "Select a business."
+                );
+
+                return;
+            }
+
+            if (!content) {
+                alert(
+                    "Enter a customer comment."
+                );
+
+                return;
+            }
+
+            saveManualCommentButton.disabled =
+                true;
+
+            saveManualCommentButton.textContent =
+                "Adding...";
+
+            try {
+                const result =
+                    await MasterControlAPI.createComment({
+                        businessId,
+                        platform,
+                        author,
+                        content
+                    });
+
+                manualAuthor.value =
+                    "";
+
+                manualContent.value =
+                    "";
+
+                addCommentPanel.classList.add(
+                    "hidden"
+                );
+
+                selectedCommentId =
+                    result.id;
+
+                await loadComments();
+            }
+            catch (error) {
+                console.error(
+                    "Add comment error:",
+                    error
+                );
+
+                alert(
+                    error.message
+                );
+            }
+            finally {
+                saveManualCommentButton.disabled =
+                    false;
+
+                saveManualCommentButton.textContent =
+                    "Add to Inbox";
+            }
+
+        }
+    );
+}
+
+
+/*
+====================================================
+DISPLAY HELPERS
+====================================================
+*/
+
+function getPlatformIcon(
+    platform = ""
+) {
     const icons = {
         facebook: "📘",
         instagram: "📸",
@@ -1168,19 +1554,27 @@ function getPlatformIcon(platform = "") {
         String(platform)
             .toLowerCase();
 
-    return icons[normalized] || "💬";
+    return icons[normalized] ||
+        "💬";
 }
+
 
 function formatPlatformName(
     platform = ""
 ) {
     const normalized =
-        String(platform || "manual")
+        String(
+            platform ||
+            "manual"
+        )
             .trim()
             .toLowerCase();
 
-    return capitalize(normalized);
+    return capitalize(
+        normalized
+    );
 }
+
 
 function formatDecisionSource(
     source = ""
@@ -1205,8 +1599,12 @@ function formatDecisionSource(
         "Not generated";
 }
 
-function capitalize(value = "") {
-    const text = String(value);
+
+function capitalize(
+    value = ""
+) {
+    const text =
+        String(value);
 
     return (
         text.charAt(0).toUpperCase() +
@@ -1214,13 +1612,38 @@ function capitalize(value = "") {
     );
 }
 
-function escapeHtml(value = "") {
+
+function escapeHtml(
+    value = ""
+) {
     return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 }
+
+
+/*
+====================================================
+START INBOX
+====================================================
+*/
 
 loadComments();

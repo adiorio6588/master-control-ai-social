@@ -4,10 +4,8 @@ require("dotenv").config();
 const express =
     require("express");
 
-
 const cors =
     require("cors");
-
 
 const path =
     require("path");
@@ -42,33 +40,35 @@ ROUTES
 const authRoutes =
     require("./routes/auth");
 
+const metaRoutes =
+    require("./routes/meta");
+
+const webhookRoutes =
+    require("./routes/webhooks");
 
 const aiRoutes =
     require("./routes/ai");
 
-
 const businessRoutes =
     require("./routes/businesses");
-
 
 const commentsRoutes =
     require("./routes/comments");
 
-
 const historyRoutes =
     require("./routes/history");
-
 
 const rulesRoutes =
     require("./routes/rules");
 
-
 const dashboardRoutes =
     require("./routes/dashboard");
 
-
 const socialAccountRoutes =
     require("./routes/socialAccounts");
+
+const settingsRoutes =
+    require("./routes/settings");
 
 
 /*
@@ -129,9 +129,6 @@ app.use(
 ====================================================
 PUBLIC API STATUS
 ====================================================
-
-No login required.
-====================================================
 */
 
 app.get(
@@ -162,15 +159,6 @@ app.get(
 ====================================================
 AUTH ROUTES
 ====================================================
-
-Public:
-
-POST /api/auth/register
-POST /api/auth/login
-
-GET /api/auth/me
-uses auth middleware inside routes/auth.js
-====================================================
 */
 
 app.use(
@@ -181,18 +169,31 @@ app.use(
 
 /*
 ====================================================
-AUTHENTICATED API
+META OAUTH ROUTES
 ====================================================
+*/
 
-Everything registered below requires:
+app.use(
+    "/api",
+    metaRoutes
+);
 
-Authorization: Bearer <token>
 
-The JWT determines:
+/*
+====================================================
+META WEBHOOK ROUTES
+====================================================
+*/
 
-req.user
-req.organizationId
-req.organizationRole
+app.use(
+    "/api",
+    webhookRoutes
+);
+
+
+/*
+====================================================
+AUTHENTICATED API
 ====================================================
 */
 
@@ -246,6 +247,12 @@ app.use(
 
 app.use(
     "/api",
+    settingsRoutes
+);
+
+
+app.use(
+    "/api",
     aiRoutes
 );
 
@@ -291,7 +298,7 @@ app.get(
 
 /*
 ====================================================
-CLEAN PAGE ROUTES
+LOGIN
 ====================================================
 */
 
@@ -312,6 +319,12 @@ app.get(
 );
 
 
+/*
+====================================================
+REGISTER
+====================================================
+*/
+
 app.get(
     "/register",
     (req, res) => {
@@ -328,6 +341,12 @@ app.get(
     }
 );
 
+
+/*
+====================================================
+DASHBOARD
+====================================================
+*/
 
 app.get(
     "/dashboard",
@@ -346,6 +365,12 @@ app.get(
 );
 
 
+/*
+====================================================
+SOCIAL INBOX
+====================================================
+*/
+
 app.get(
     "/inbox",
     (req, res) => {
@@ -362,6 +387,12 @@ app.get(
     }
 );
 
+
+/*
+====================================================
+BUSINESSES
+====================================================
+*/
 
 app.get(
     "/businesses",
@@ -380,6 +411,12 @@ app.get(
 );
 
 
+/*
+====================================================
+RULES
+====================================================
+*/
+
 app.get(
     "/rules",
     (req, res) => {
@@ -390,6 +427,52 @@ app.get(
                 "public",
                 "pages",
                 "rules.html"
+            )
+        );
+
+    }
+);
+
+
+/*
+====================================================
+ANALYTICS
+====================================================
+*/
+
+app.get(
+    "/analytics",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "pages",
+                "analytics.html"
+            )
+        );
+
+    }
+);
+
+
+/*
+====================================================
+AUTOMATION
+====================================================
+*/
+
+app.get(
+    "/automation",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "pages",
+                "automation.html"
             )
         );
 
@@ -522,6 +605,14 @@ app.listen(
         );
 
         console.log(
+            ` Analytics: http://localhost:${PORT}/analytics`
+        );
+
+        console.log(
+            ` Automation: http://localhost:${PORT}/automation`
+        );
+
+        console.log(
             ` API Status: http://localhost:${PORT}/api/status`
         );
 
@@ -535,6 +626,22 @@ app.listen(
 
         console.log(
             ` Account API: GET http://localhost:${PORT}/api/auth/me`
+        );
+
+        console.log(
+            ` Meta Connect: GET http://localhost:${PORT}/api/meta/connect`
+        );
+
+        console.log(
+            ` Meta Callback: GET http://localhost:${PORT}/api/meta/callback`
+        );
+
+        console.log(
+            ` Meta Assets: GET http://localhost:${PORT}/api/meta/assets`
+        );
+
+        console.log(
+            ` Meta Webhook: GET/POST http://localhost:${PORT}/api/webhooks/meta`
         );
 
         console.log(

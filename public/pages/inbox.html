@@ -73,12 +73,18 @@
         </button>
 
 
-        <button type="button">
+        <button
+            type="button"
+            onclick="location.href='/analytics'"
+        >
             Analytics
         </button>
 
 
-        <button type="button">
+        <button
+            type="button"
+            onclick="location.href='/automation'"
+        >
             Automation
         </button>
 
@@ -140,6 +146,112 @@
             </div>
 
         </header>
+
+        <div class="inbox-toolbar">
+
+            <button
+                id="open-add-comment"
+                class="inbox-button primary"
+                type="button"
+            >
+                + Add Comment
+            </button>
+        
+        </div>
+        
+        
+        <div
+            id="add-comment-panel"
+            class="add-comment-panel hidden"
+        >
+        
+            <h3>
+                Add Comment
+            </h3>
+        
+            <label for="manual-business">
+                Business
+            </label>
+        
+            <select id="manual-business">
+                <option value="">
+                    Select Business
+                </option>
+            </select>
+        
+        
+            <label for="manual-platform">
+                Platform
+            </label>
+        
+            <select id="manual-platform">
+        
+                <option value="instagram">
+                    Instagram
+                </option>
+        
+                <option value="facebook">
+                    Facebook
+                </option>
+        
+                <option value="tiktok">
+                    TikTok
+                </option>
+        
+                <option value="youtube">
+                    YouTube
+                </option>
+        
+                <option value="manual">
+                    Manual
+                </option>
+        
+            </select>
+        
+        
+            <label for="manual-author">
+                Customer Name
+            </label>
+        
+            <input
+                id="manual-author"
+                class="control-input"
+                type="text"
+                placeholder="Customer"
+            >
+        
+        
+            <label for="manual-content">
+                Comment
+            </label>
+        
+            <textarea
+                id="manual-content"
+                placeholder="Enter customer comment..."
+            ></textarea>
+        
+        
+            <div class="inbox-actions">
+        
+                <button
+                    id="save-manual-comment"
+                    class="inbox-button primary"
+                    type="button"
+                >
+                    Add to Inbox
+                </button>
+        
+                <button
+                    id="cancel-manual-comment"
+                    class="inbox-button"
+                    type="button"
+                >
+                    Cancel
+                </button>
+        
+            </div>
+        
+        </div>
 
 
         <div class="inbox-layout">

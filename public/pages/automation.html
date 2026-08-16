@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Master Control | Automation
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/css/design-system.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/automation.css"
+    >
+
+</head>
+
+
+<body>
+
+    <aside class="sidebar">
+
+        <h2>
+            Master Control
+        </h2>
+
+
+        <button
+            type="button"
+            onclick="location.href='/dashboard'"
+        >
+            Dashboard
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/inbox'"
+        >
+            Social Inbox
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/businesses'"
+        >
+            Businesses
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/rules'"
+        >
+            Rules
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/analytics'"
+        >
+            Analytics
+        </button>
+
+
+        <button
+            type="button"
+            class="active-nav"
+        >
+            Automation
+        </button>
+
+
+        <button type="button">
+            Settings
+        </button>
+
+
+        <button
+            class="sidebar-logout"
+            type="button"
+            onclick="MasterControlAuth.logout()"
+        >
+            LOGOUT
+        </button>
+
+
+        <div class="sidebar-system-status">
+
+            <span class="online-light"></span>
+
+            <div>
+
+                <strong>
+                    System Online
+                </strong>
+
+                <p>
+                    Version 0.6
+                </p>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <main class="content">
+
+        <header class="command-header">
+
+            <div>
+
+                <p class="system-label">
+                    MASTER CONTROL // AUTOMATION
+                </p>
+
+                <h1>
+                    Automation
+                </h1>
+
+                <p class="header-description">
+                    Control how Master Control generates,
+                    approves, and prepares social responses.
+                </p>
+
+            </div>
+
+        </header>
+
+
+        <section class="automation-grid">
+
+
+            <article class="automation-card">
+
+                <div class="automation-card-header">
+
+                    <div>
+
+                        <span class="automation-label">
+                            AI RESPONSE
+                        </span>
+
+                        <h2>
+                            Auto Generate Replies
+                        </h2>
+
+                    </div>
+
+
+                    <label class="toggle">
+
+                        <input
+                            id="auto-generate"
+                            type="checkbox"
+                        >
+
+                        <span class="toggle-slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <p>
+                    Automatically generate a response
+                    when a new comment enters the inbox.
+                </p>
+
+            </article>
+
+
+            <article class="automation-card">
+
+                <div class="automation-card-header">
+
+                    <div>
+
+                        <span class="automation-label">
+                            APPROVAL
+                        </span>
+
+                        <h2>
+                            Require Approval
+                        </h2>
+
+                    </div>
+
+
+                    <label class="toggle">
+
+                        <input
+                            id="require-approval"
+                            type="checkbox"
+                            checked
+                        >
+
+                        <span class="toggle-slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <p>
+                    Require manual approval before a generated
+                    reply moves to approved status.
+                </p>
+
+            </article>
+
+
+            <article class="automation-card">
+
+                <div class="automation-card-header">
+
+                    <div>
+
+                        <span class="automation-label">
+                            RULE ENGINE
+                        </span>
+
+                        <h2>
+                            Auto Reply With Rules
+                        </h2>
+
+                    </div>
+
+
+                    <label class="toggle">
+
+                        <input
+                            id="auto-rules"
+                            type="checkbox"
+                        >
+
+                        <span class="toggle-slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <p>
+                    Use matching business rules before
+                    sending the request to AI.
+                </p>
+
+            </article>
+
+
+            <article class="automation-card automation-card-disabled">
+
+                <div class="automation-card-header">
+
+                    <div>
+
+                        <span class="automation-label">
+                            POSTING
+                        </span>
+
+                        <h2>
+                            Auto Post Approved Replies
+                        </h2>
+
+                    </div>
+
+
+                    <label class="toggle">
+
+                        <input
+                            id="auto-post"
+                            type="checkbox"
+                            disabled
+                        >
+
+                        <span class="toggle-slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <p>
+                    Available after a supported social platform
+                    is connected for real posting.
+                </p>
+
+                <div class="automation-lock-note">
+                    PLATFORM CONNECTION REQUIRED
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <section class="automation-settings-panel">
+
+            <div class="panel-header">
+
+                <h2>
+                    Business Automation
+                </h2>
+
+            </div>
+
+
+            <label for="automation-business">
+                Business
+            </label>
+
+            <select id="automation-business">
+
+                <option value="">
+                    Select Business
+                </option>
+
+            </select>
+
+
+            <label for="automation-platform">
+                Platform
+            </label>
+
+            <select id="automation-platform">
+
+                <option value="all">
+                    All Platforms
+                </option>
+
+                <option value="facebook">
+                    Facebook
+                </option>
+
+                <option value="instagram">
+                    Instagram
+                </option>
+
+                <option value="youtube">
+                    YouTube
+                </option>
+
+                <option value="tiktok">
+                    TikTok
+                </option>
+
+            </select>
+
+
+            <button
+                id="save-automation"
+                class="inbox-button primary"
+                type="button"
+            >
+                Save Automation Settings
+            </button>
+
+        </section>
+
+    </main>
+
+
+    <script src="/js/core/auth.js?v=1"></script>
+    <script src="/js/core/api.js?v=50"></script>
+    <script src="/js/automation.js?v=2"></script>
+
+    <script>
+        MasterControlAuth.requireAuth();
+    </script>
+
+</body>
+
+</html>

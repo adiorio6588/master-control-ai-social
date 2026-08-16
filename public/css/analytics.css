@@ -1,0 +1,163 @@
+.analytics-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.analytics-stat {
+    padding: 20px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+}
+
+.analytics-stat span,
+.analytics-label {
+    color: var(--orange);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+}
+
+.analytics-stat strong {
+    display: block;
+    margin-top: 10px;
+    color: white;
+    font-family: Impact, "Arial Black", sans-serif;
+    font-size: 30px;
+}
+
+.analytics-panel {
+    margin-bottom: 22px;
+    padding: 22px;
+    border: 1px solid var(--border);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(18, 21, 26, 0.98),
+            rgba(8, 9, 11, 0.98)
+        );
+}
+
+.source-grid,
+.status-grid {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.source-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.status-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.source-grid article,
+.status-grid article {
+    padding: 16px;
+    border: 1px solid rgba(255, 75, 11, 0.28);
+    background: #08090a;
+}
+
+.source-grid span,
+.status-grid span {
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.source-grid strong,
+.status-grid strong {
+    display: block;
+    margin-top: 8px;
+    color: white;
+    font-family: Impact, "Arial Black", sans-serif;
+    font-size: 24px;
+}
+
+.business-analytics-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.business-analytics-item {
+    display: grid;
+    grid-template-columns:
+        minmax(180px, 1.4fr)
+        repeat(5, minmax(80px, 0.6fr));
+    gap: 12px;
+    align-items: center;
+
+    padding: 15px;
+
+    border: 1px solid rgba(255, 75, 11, 0.28);
+    background: #08090a;
+}
+
+.business-analytics-name strong {
+    display: block;
+    color: white;
+    font-size: 13px;
+}
+
+.business-analytics-name small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.business-metric span {
+    display: block;
+    color: var(--orange);
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.business-metric strong {
+    display: block;
+    margin-top: 5px;
+    color: white;
+    font-size: 15px;
+}
+
+.analytics-empty {
+    padding: 28px;
+    border: 1px dashed rgba(255, 75, 11, 0.35);
+    color: var(--muted);
+    text-align: center;
+}
+
+@media (max-width: 1100px) {
+    .analytics-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .status-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .business-analytics-item {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .analytics-summary,
+    .source-grid,
+    .status-grid,
+    .business-analytics-item {
+        grid-template-columns: 1fr;
+    }
+}

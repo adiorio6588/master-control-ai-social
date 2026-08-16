@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Master Control | Analytics
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/css/design-system.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/analytics.css"
+    >
+
+</head>
+
+
+<body>
+
+    <aside class="sidebar">
+
+        <h2>
+            Master Control
+        </h2>
+
+
+        <button
+            type="button"
+            onclick="location.href='/dashboard'"
+        >
+            Dashboard
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/inbox'"
+        >
+            Social Inbox
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/businesses'"
+        >
+            Businesses
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/rules'"
+        >
+            Rules
+        </button>
+
+
+        <button
+            type="button"
+            class="active-nav"
+        >
+            Analytics
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/automation'"
+        >
+            Automation
+        </button>
+
+        <button type="button">
+            Settings
+        </button>
+
+
+        <button
+            class="sidebar-logout"
+            type="button"
+            onclick="MasterControlAuth.logout()"
+        >
+            LOGOUT
+        </button>
+
+
+        <div class="sidebar-system-status">
+
+            <span class="online-light"></span>
+
+            <div>
+
+                <strong>
+                    System Online
+                </strong>
+
+                <p>
+                    Version 0.6
+                </p>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <main class="content">
+
+        <header class="command-header">
+
+            <div>
+
+                <p class="system-label">
+                    MASTER CONTROL // ANALYTICS
+                </p>
+
+                <h1>
+                    Analytics
+                </h1>
+
+                <p class="header-description">
+                    Monitor comments, AI responses,
+                    automation activity, and business performance.
+                </p>
+
+            </div>
+
+        </header>
+
+
+        <!-- SUMMARY -->
+
+        <section class="analytics-summary">
+
+            <article class="analytics-stat">
+
+                <span>
+                    TOTAL COMMENTS
+                </span>
+
+                <strong id="analytics-total-comments">
+                    0
+                </strong>
+
+            </article>
+
+
+            <article class="analytics-stat">
+
+                <span>
+                    COMMENTS TODAY
+                </span>
+
+                <strong id="analytics-comments-today">
+                    0
+                </strong>
+
+            </article>
+
+
+            <article class="analytics-stat">
+
+                <span>
+                    REPLIES TODAY
+                </span>
+
+                <strong id="analytics-replies-today">
+                    0
+                </strong>
+
+            </article>
+
+
+            <article class="analytics-stat">
+
+                <span>
+                    AVG RESPONSE TIME
+                </span>
+
+                <strong id="analytics-response-time">
+                    0 ms
+                </strong>
+
+            </article>
+
+        </section>
+
+
+        <!-- RESPONSE SOURCES -->
+
+        <section class="analytics-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="analytics-label">
+                        AI ACTIVITY
+                    </span>
+
+                    <h2>
+                        Response Sources
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="source-grid">
+
+                <article>
+
+                    <span>
+                        AI Generated
+                    </span>
+
+                    <strong id="analytics-gpt">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Rule Generated
+                    </span>
+
+                    <strong id="analytics-rules">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Estimated AI Cost
+                    </span>
+
+                    <strong id="analytics-cost">
+                        $0.0000
+                    </strong>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        <!-- STATUS -->
+
+        <section class="analytics-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="analytics-label">
+                        WORKFLOW
+                    </span>
+
+                    <h2>
+                        Reply Status
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="status-grid">
+
+                <article>
+
+                    <span>
+                        Pending
+                    </span>
+
+                    <strong id="analytics-pending">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Replied
+                    </span>
+
+                    <strong id="analytics-replied">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Approved
+                    </span>
+
+                    <strong id="analytics-approved">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Posted
+                    </span>
+
+                    <strong id="analytics-posted">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Ignored
+                    </span>
+
+                    <strong id="analytics-ignored">
+                        0
+                    </strong>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        <!-- BUSINESS PERFORMANCE -->
+
+        <section class="analytics-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="analytics-label">
+                        BUSINESSES
+                    </span>
+
+                    <h2>
+                        Business Activity
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="analytics-businesses"
+                class="business-analytics-list"
+            >
+
+                <div class="analytics-empty">
+                    Loading business activity...
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="/js/core/auth.js?v=1"></script>
+    <script src="/js/core/api.js?v=50"></script>
+    <script src="/js/analytics.js?v=1"></script>
+
+    <script>
+        MasterControlAuth.requireAuth();
+    </script>
+
+</body>
+
+</html>

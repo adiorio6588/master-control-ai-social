@@ -584,33 +584,39 @@ function renderCommentDetails(comment) {
 
                 </article>
 
-                <article class="decision-item">
+                ${
+                    shouldShowApiMetrics()
+                        ? `
+                            <article class="decision-item">
 
-                    <span>
-                        Processing Time
-                    </span>
+                                <span>
+                                    Processing Time
+                                </span>
 
-                    <strong>
-                        ${escapeHtml(
-                            processingTime
-                        )}
-                    </strong>
+                                <strong>
+                                    ${escapeHtml(
+                                        processingTime
+                                    )}
+                                </strong>
 
-                </article>
+                            </article>
 
-                <article class="decision-item">
+                            <article class="decision-item">
 
-                    <span>
-                        Estimated API Cost
-                    </span>
+                                <span>
+                                    Estimated API Cost
+                                </span>
 
-                    <strong>
-                        ${escapeHtml(
-                            estimatedCost
-                        )}
-                    </strong>
+                                <strong>
+                                    ${escapeHtml(
+                                        estimatedCost
+                                    )}
+                                </strong>
 
-                </article>
+                            </article>
+                        `
+                        : ""
+                }
 
             </div>
 
@@ -663,7 +669,7 @@ function renderCommentDetails(comment) {
                 class="inbox-button"
                 type="button"
             >
-                Mark Posted
+                Post Reply
             </button>
 
             <button
@@ -906,15 +912,59 @@ function attachDetailEvents(comment) {
     }
 
     if (postedButton) {
+
         postedButton.addEventListener(
             "click",
-            () => {
-                updateCommentStatus(
-                    comment.id,
-                    "posted"
-                );
+            async () => {
+    
+                postedButton.disabled =
+                    true;
+    
+                postedButton.textContent =
+                    "Posting...";
+    
+    
+                try {
+    
+                    await MasterControlAPI
+                        .postReply(
+                            comment.id
+                        );
+    
+    
+                    selectedCommentId =
+                        comment.id;
+    
+    
+                    await loadComments();
+    
+                }
+                catch (error) {
+    
+                    console.error(
+                        "Post reply error:",
+                        error
+                    );
+    
+    
+                    window.alert(
+                        error.message ||
+                        "Unable to post reply."
+                    );
+    
+    
+                    postedButton.disabled =
+                        false;
+    
+    
+                    postedButton.textContent =
+                        "Post Reply";
+    
+                }
+    
             }
         );
+    
     }
 
     if (ignoreButton) {
@@ -1108,38 +1158,59 @@ DELETE COMMENT
 */
 
 async function deleteComment(comment) {
-    const confirmed =
-        window.confirm(
-            `Delete the comment from ${
-                comment.author ||
-                "Customer"
-            }?`
-        );
 
-    if (!confirmed) {
-        return;
+    const confirmBeforeDelete =
+        localStorage.getItem(
+            "masterControlConfirmDelete"
+        ) !== "false";
+
+
+    if (confirmBeforeDelete) {
+
+        const confirmed =
+            window.confirm(
+                `Delete the comment from ${
+                    comment.author ||
+                    "Customer"
+                }?`
+            );
+
+
+        if (!confirmed) {
+            return;
+        }
+
     }
 
+
     try {
+
         await MasterControlAPI.deleteComment(
             comment.id
         );
 
+
         selectedCommentId =
             null;
 
+
         await loadComments();
+
     }
     catch (error) {
+
         console.error(
             "Delete comment error:",
             error
         );
 
+
         alert(
             error.message
         );
+
     }
+
 }
 
 
@@ -1535,6 +1606,39 @@ if (saveManualCommentButton) {
 
 /*
 ====================================================
+PREFERENCES
+====================================================
+*/
+
+function shouldShowApiMetrics() {
+
+    return (
+        localStorage.getItem(
+            "masterControlShowApiMetrics"
+        ) !== "false"
+    );
+
+}
+
+
+function applyInboxPreferences() {
+
+    const compact =
+        localStorage.getItem(
+            "masterControlCompactInbox"
+        ) === "true";
+
+
+    document.body.classList.toggle(
+        "compact-inbox",
+        compact
+    );
+
+}
+
+
+/*
+====================================================
 DISPLAY HELPERS
 ====================================================
 */
@@ -1646,4 +1750,5 @@ START INBOX
 ====================================================
 */
 
+applyInboxPreferences();
 loadComments();

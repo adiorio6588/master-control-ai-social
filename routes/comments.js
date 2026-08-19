@@ -8,6 +8,12 @@ const database =
     require("../database/database");
 
 const {
+    decryptToken
+} = require(
+    "../services/tokenEncryption"
+);
+
+const {
     generateReply
 } =
     require("../services/openai");
@@ -221,6 +227,8 @@ router.get(
                             ) AS reply,
 
                             comments.source,
+
+                            comments.external_comment_id,
 
                             comments.rule,
 
@@ -1030,10 +1038,18 @@ router.put(
     }
 );
 
-
+/*
 /*
 ====================================================
 POST /api/comments/:id/reply
+====================================================
+
+Saves a reply as a local draft.
+
+This route DOES NOT publish anything to Facebook
+or another social platform.
+
+Publishing is handled separately by the post route.
 ====================================================
 */
 
@@ -1061,6 +1077,12 @@ router.post(
 
                     : "";
 
+
+            /*
+            ============================================
+            VALIDATE REQUEST
+            ============================================
+            */
 
             if (
                 !Number.isInteger(
@@ -1092,6 +1114,12 @@ router.post(
             }
 
 
+            /*
+            ============================================
+            LOAD COMMENT
+            ============================================
+            */
+
             const comment =
                 getCommentById(
                     commentId,
@@ -1110,6 +1138,12 @@ router.post(
 
             }
 
+
+            /*
+            ============================================
+            SAVE LOCAL REPLY
+            ============================================
+            */
 
             const saveReply =
                 database.transaction(
@@ -1135,6 +1169,7 @@ router.post(
 
                                                 ELSE
                                                     status
+
                                             END,
 
                                         updated_at =
@@ -1225,12 +1260,21 @@ router.post(
                 saveReply();
 
 
-            res.json({
+            /*
+            ============================================
+            RESPONSE
+            ============================================
+            */
+
+            return res.json({
 
                 success:
                     true,
 
                 replyId,
+
+                postedToFacebook:
+                    false,
 
                 ...getCommentById(
                     commentId,
@@ -1248,7 +1292,7 @@ router.post(
             );
 
 
-            res
+            return res
                 .status(500)
                 .json({
                     error:
@@ -1263,6 +1307,594 @@ router.post(
     }
 );
 
+/*
+====================================================
+POST /api/comments/:id/post
+====================================================
+
+Publishes an approved saved reply to Facebook.
+
+This route:
+1. Loads the local comment + reply.
+2. Verifies it is a Meta Facebook comment.
+3. Gets the Facebook Page access token.
+4. Posts the saved reply to the real comment.
+5. Marks the local reply as posted.
+====================================================
+*/
+
+router.post(
+    "/comments/:id/post",
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                getCurrentOrganizationId(
+                    req
+                );
+
+
+            const commentId =
+                Number(
+                    req.params.id
+                );
+
+
+            if (
+                !Number.isInteger(
+                    commentId
+                )
+                ||
+                commentId <= 0
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "A valid comment ID is required."
+                    });
+
+            }
+
+
+            const comment =
+                getCommentById(
+                    commentId,
+                    organizationId
+                );
+
+
+            if (!comment) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Comment not found."
+                    });
+
+            }
+
+
+            const reply =
+                typeof comment.reply ===
+                    "string"
+
+                    ? comment.reply.trim()
+
+                    : "";
+
+
+            if (!reply) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Save a reply before posting."
+                    });
+
+            }
+
+
+            if (
+                Number(
+                    comment.approved
+                ) !== 1
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Approve the reply before posting."
+                    });
+
+            }
+
+
+            if (
+                Number(
+                    comment.posted
+                ) === 1
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "This reply has already been posted."
+                    });
+
+            }
+
+
+            const isFacebookMetaComment =
+                comment.platform ===
+                    "facebook"
+            &&
+                typeof comment
+                    .external_comment_id ===
+                    "string"
+            &&
+                comment
+                    .external_comment_id
+                    .trim()
+                    .length > 0;
+
+            if (!isFacebookMetaComment) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "This comment is not a connected Facebook comment."
+                    });
+
+            }
+
+
+            const externalCommentId =
+                comment
+                    .external_comment_id
+                    .trim();
+
+
+            /*
+            ============================================
+            LOAD FACEBOOK SOCIAL ACCOUNT
+            ============================================
+            */
+
+            const socialAccount =
+                database
+                    .prepare(`
+                        SELECT
+                            social_accounts.id,
+                            social_accounts.business_id,
+                            social_accounts.account_name,
+                            social_accounts.external_account_id,
+                            social_accounts.connected
+
+                        FROM social_accounts
+
+                        INNER JOIN businesses
+
+                            ON businesses.id =
+                                social_accounts.business_id
+
+                        WHERE
+                            social_accounts.business_id = ?
+                            AND social_accounts.platform = 'facebook'
+                            AND businesses.organization_id = ?
+                    `)
+                    .get(
+                        comment.business_id,
+                        organizationId
+                    );
+
+
+            if (
+                !socialAccount
+                ||
+                Number(
+                    socialAccount.connected
+                ) !== 1
+                ||
+                !socialAccount
+                    .external_account_id
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "The Facebook Page for this business is not connected."
+                    });
+
+            }
+
+
+            const pageId =
+                String(
+                    socialAccount.external_account_id
+                ).trim();
+
+
+            /*
+            ============================================
+            LOAD META CONNECTION
+            ============================================
+            */
+
+            const connection =
+                database
+                    .prepare(`
+                        SELECT
+                            access_token_encrypted,
+                            token_expires_at
+
+                        FROM social_oauth_connections
+
+                        WHERE
+                            organization_id = ?
+                            AND provider = 'meta'
+                    `)
+                    .get(
+                        organizationId
+                    );
+
+
+            if (
+                !connection
+                ||
+                !connection
+                    .access_token_encrypted
+            ) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Meta is not connected."
+                    });
+
+            }
+
+
+            if (
+                connection.token_expires_at
+            ) {
+
+                const expiration =
+                    new Date(
+                        connection.token_expires_at
+                    );
+
+
+                if (
+                    !Number.isNaN(
+                        expiration.getTime()
+                    )
+                    &&
+                    expiration.getTime() <=
+                        Date.now()
+                ) {
+
+                    return res
+                        .status(401)
+                        .json({
+                            error:
+                                "Meta connection has expired. Please reconnect."
+                        });
+
+                }
+
+            }
+
+
+            const organizationAccessToken =
+                decryptToken(
+                    connection
+                        .access_token_encrypted
+                );
+
+
+            if (!organizationAccessToken) {
+
+                return res
+                    .status(500)
+                    .json({
+                        error:
+                            "Unable to decrypt Meta connection."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            GET PAGE ACCESS TOKEN
+            ============================================
+            */
+
+            const accountsUrl =
+                new URL(
+                    "https://graph.facebook.com/v26.0/me/accounts"
+                );
+
+
+            accountsUrl
+                .searchParams
+                .set(
+                    "fields",
+                    "id,name,access_token"
+                );
+
+
+            accountsUrl
+                .searchParams
+                .set(
+                    "access_token",
+                    organizationAccessToken
+                );
+
+
+            const accountsResponse =
+                await fetch(
+                    accountsUrl,
+                    {
+                        method:
+                            "GET",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const accountsData =
+                await accountsResponse
+                    .json();
+
+
+            if (!accountsResponse.ok) {
+
+                console.error(
+                    "Meta Page credential lookup failed:",
+                    accountsData
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Unable to load Facebook Page credentials.",
+
+                        meta:
+                            accountsData
+                                ?.error
+                                ?.message ||
+                            "Unknown Meta error."
+                    });
+
+            }
+
+
+            const pages =
+                Array.isArray(
+                    accountsData.data
+                )
+                    ? accountsData.data
+                    : [];
+
+
+            const page =
+                pages.find(
+                    item =>
+                        String(
+                            item.id
+                        ) ===
+                        pageId
+                );
+
+
+            if (
+                !page
+                ||
+                !page.access_token
+            ) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Facebook Page credentials were not found."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            POST REPLY TO FACEBOOK
+            ============================================
+            */
+
+            const replyUrl =
+                new URL(
+                    `https://graph.facebook.com/v26.0/${encodeURIComponent(
+                        externalCommentId
+                    )}/comments`
+                );
+
+
+            replyUrl
+                .searchParams
+                .set(
+                    "message",
+                    reply
+                );
+
+
+            replyUrl
+                .searchParams
+                .set(
+                    "access_token",
+                    page.access_token
+                );
+
+
+            const facebookResponse =
+                await fetch(
+                    replyUrl,
+                    {
+                        method:
+                            "POST",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const facebookData =
+                await facebookResponse
+                    .json();
+
+
+            if (
+                !facebookResponse.ok
+                ||
+                !facebookData.id
+            ) {
+
+                console.error(
+                    "Facebook reply post failed:",
+                    facebookData
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Facebook did not accept the reply.",
+
+                        meta:
+                            facebookData
+                                ?.error
+                                ?.message ||
+                            "Meta did not return a reply ID."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            MARK LOCAL REPLY AS POSTED
+            ============================================
+            */
+
+            database.transaction(
+                () => {
+
+                    database
+                        .prepare(`
+                            UPDATE comments
+
+                            SET
+                                status = 'posted',
+                                updated_at =
+                                    CURRENT_TIMESTAMP
+
+                            WHERE id = ?
+                        `)
+                        .run(
+                            commentId
+                        );
+
+
+                    database
+                        .prepare(`
+                            UPDATE replies
+
+                            SET
+                                posted = 1,
+                                approved = 1
+
+                            WHERE id = ?
+                        `)
+                        .run(
+                            comment.reply_id
+                        );
+
+                }
+            )();
+
+
+            console.log(
+                "✅ Facebook approved reply posted:",
+                {
+                    commentId,
+                    externalCommentId,
+                    facebookReplyId:
+                        facebookData.id
+                }
+            );
+
+
+            return res.json({
+
+                success:
+                    true,
+
+                postedToFacebook:
+                    true,
+
+                facebookReplyId:
+                    String(
+                        facebookData.id
+                    ),
+
+                ...getCommentById(
+                    commentId,
+                    organizationId
+                )
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Post comment reply error:",
+                error
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "Unable to post the reply.",
+
+                    details:
+                        error.message
+                });
+
+        }
+
+    }
+);
 
 /*
 ====================================================
@@ -2175,7 +2807,6 @@ function getAutomationKey(
 
 }
 
-
 /*
 ====================================================
 GET COMMENT BY ID
@@ -2217,6 +2848,8 @@ function getCommentById(
                 ) AS reply,
 
                 comments.source,
+
+                comments.external_comment_id,
 
                 comments.rule,
 
@@ -2283,7 +2916,6 @@ function getCommentById(
         );
 
 }
-
 
 /*
 ====================================================

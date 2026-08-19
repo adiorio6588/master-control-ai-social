@@ -802,3 +802,31 @@ textarea {
 .add-comment-panel .inbox-actions {
     margin-top: 18px;
 }
+
+/*
+====================================================
+COMPACT INBOX MODE
+====================================================
+*/
+
+body.compact-inbox .comment-card {
+    padding: 10px 12px;
+}
+
+body.compact-inbox .comment-card-top {
+    gap: 8px;
+}
+
+body.compact-inbox .comment-preview {
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+body.compact-inbox .comment-author small {
+    margin-top: 2px;
+}
+
+body.compact-inbox .comment-list {
+    gap: 6px;
+}

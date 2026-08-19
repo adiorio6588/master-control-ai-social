@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Master Control | Settings
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/css/design-system.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/settings.css"
+    >
+
+</head>
+
+
+<body>
+
+    <aside class="sidebar">
+
+        <h2>
+            Master Control
+        </h2>
+
+
+        <button
+            type="button"
+            onclick="location.href='/dashboard'"
+        >
+            Dashboard
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/inbox'"
+        >
+            Social Inbox
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/businesses'"
+        >
+            Businesses
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/rules'"
+        >
+            Rules
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/analytics'"
+        >
+            Analytics
+        </button>
+
+
+        <button
+            type="button"
+            onclick="location.href='/automation'"
+        >
+            Automation
+        </button>
+
+
+        <button
+            type="button"
+            class="active-nav"
+        >
+            Settings
+        </button>
+
+
+        <button
+            class="sidebar-logout"
+            type="button"
+            onclick="MasterControlAuth.logout()"
+        >
+            LOGOUT
+        </button>
+
+
+        <div class="sidebar-system-status">
+
+            <span class="online-light"></span>
+
+            <div>
+
+                <strong>
+                    System Online
+                </strong>
+
+                <p>
+                    Version 0.6
+                </p>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <main class="content">
+
+        <header class="command-header">
+
+            <div>
+
+                <p class="system-label">
+                    MASTER CONTROL // SETTINGS
+                </p>
+
+                <h1>
+                    Settings
+                </h1>
+
+                <p class="header-description">
+                    Manage organization preferences,
+                    system behavior, and account information.
+                </p>
+
+            </div>
+
+        </header>
+
+
+        <section class="settings-grid">
+
+
+            <article class="settings-card">
+
+                <div class="settings-card-header">
+
+                    <div>
+
+                        <span class="settings-label">
+                            ACCOUNT
+                        </span>
+
+                        <h2>
+                            Account Information
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="settings-field">
+
+                    <label>
+                        User
+                    </label>
+
+                    <div
+                        id="settings-user"
+                        class="settings-value"
+                    >
+                        Loading...
+                    </div>
+
+                </div>
+
+
+                <div class="settings-field">
+
+                    <label>
+                        Organization
+                    </label>
+
+                    <div
+                        id="settings-organization"
+                        class="settings-value"
+                    >
+                        Loading...
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <article class="settings-card">
+
+                <div class="settings-card-header">
+
+                    <div>
+
+                        <span class="settings-label">
+                            SYSTEM
+                        </span>
+
+                        <h2>
+                            System Preferences
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="settings-toggle-row">
+
+                    <div>
+
+                        <strong>
+                            Compact Inbox
+                        </strong>
+
+                        <p>
+                            Reduce spacing in comment cards.
+                        </p>
+
+                    </div>
+
+
+                    <label class="toggle">
+
+                        <input
+                            id="compact-inbox"
+                            type="checkbox"
+                        >
+
+                        <span class="toggle-slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <div class="settings-toggle-row">
+
+                    <div>
+
+                        <strong>
+                            Confirm Before Delete
+                        </strong>
+
+                        <p>
+                            Ask for confirmation before deleting comments.
+                        </p>
+
+                    </div>
+
+
+                    <label class="toggle">
+
+                        <input
+                            id="confirm-delete"
+                            type="checkbox"
+                            checked
+                        >
+
+                        <span class="toggle-slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <div class="settings-toggle-row">
+
+                    <div>
+
+                        <strong>
+                            Show API Metrics
+                        </strong>
+
+                        <p>
+                            Display response time and estimated API cost.
+                        </p>
+
+                    </div>
+
+
+                    <label class="toggle">
+
+                        <input
+                            id="show-api-metrics"
+                            type="checkbox"
+                            checked
+                        >
+
+                        <span class="toggle-slider"></span>
+
+                    </label>
+
+                </div>
+
+            </article>
+
+
+            <article class="settings-card">
+
+                <div class="settings-card-header">
+
+                    <div>
+
+                        <span class="settings-label">
+                            PLATFORM
+                        </span>
+
+                        <h2>
+                            Social Connections
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="settings-social-accounts"
+                    class="settings-social-list"
+                >
+
+                    <div class="settings-empty">
+                        Loading social accounts...
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <article class="settings-card">
+
+                <div class="settings-card-header">
+
+                    <div>
+
+                        <span class="settings-label">
+                            SYSTEM INFO
+                        </span>
+
+                        <h2>
+                            Master Control
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="settings-info-grid">
+
+                    <div>
+
+                        <span>
+                            Version
+                        </span>
+
+                        <strong>
+                            0.6
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Status
+                        </span>
+
+                        <strong class="settings-online">
+                            Online
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <button
+            id="save-settings"
+            class="settings-save-button"
+            type="button"
+        >
+            Save Settings
+        </button>
+
+    </main>
+
+
+    <script src="/js/core/auth.js?v=1"></script>
+    <script src="/js/core/api.js?v=50"></script>
+    <script src="/js/settings.js?v=1"></script>
+
+    <script>
+        MasterControlAuth.requireAuth();
+    </script>
+
+</body>
+
+</html>

@@ -419,6 +419,21 @@ window.MasterControlAPI = (() => {
     }
 
 
+    function postReply(
+        commentId
+    ) {
+
+        return request(
+            `/api/comments/${commentId}/post`,
+            {
+                method:
+                    "POST"
+            }
+        );
+
+    }
+
+
     /*
     ====================================================
     AI
@@ -575,6 +590,109 @@ window.MasterControlAPI = (() => {
 
     /*
     ====================================================
+    Meta
+    ====================================================
+    */
+
+    function startMetaConnection(
+        businessId,
+        platform
+    ) {
+
+        return request(
+            `/api/meta/connect?businessId=${encodeURIComponent(
+                businessId
+            )}&platform=${encodeURIComponent(
+                platform
+            )}`
+        );
+
+    }
+
+
+    function getMetaAssets() {
+
+        return request(
+            "/api/meta/assets"
+        );
+
+    }
+
+
+    function getMetaPageFeed(
+        pageId
+    ) {
+
+        return request(
+            `/api/meta/page-feed/${encodeURIComponent(
+                pageId
+            )}`
+        );
+
+    }
+
+
+    function getMetaPageComments(
+        pageId
+    ) {
+
+        return request(
+            `/api/meta/page-comments/${encodeURIComponent(
+                pageId
+            )}`
+        );
+
+    }
+
+
+    function subscribeMetaPage(
+        businessId,
+        pageId
+    ) {
+
+        return request(
+            "/api/meta/subscribe-page",
+            {
+                method:
+                    "POST",
+
+                body:
+                    JSON.stringify({
+                        businessId,
+                        pageId
+                    })
+            }
+        );
+
+    }
+
+
+    function assignMetaPage(
+        businessId,
+        pageId,
+        pageName
+    ) {
+
+        return request(
+            "/api/meta/assign-page",
+            {
+                method:
+                    "POST",
+
+                body:
+                    JSON.stringify({
+                        businessId,
+                        pageId,
+                        pageName
+                    })
+            }
+        );
+
+    }
+
+
+    /*
+    ====================================================
     Public API
     ====================================================
     */
@@ -600,6 +718,7 @@ window.MasterControlAPI = (() => {
         deleteComment,
         updateCommentStatus,
         saveReply,
+        postReply,
 
         generateReply,
 
@@ -611,7 +730,14 @@ window.MasterControlAPI = (() => {
         getHistory,
 
         getAutomationSettings,
-        saveAutomationSettings
+        saveAutomationSettings,
+
+        startMetaConnection,
+        getMetaAssets,
+        getMetaPageFeed,
+        getMetaPageComments,
+        subscribeMetaPage,
+        assignMetaPage
 
     };
 

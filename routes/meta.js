@@ -42,15 +42,6 @@ META OAUTH
 ====================================================
 GET /api/meta/connect
 ====================================================
-
-Starts Facebook Login for Business.
-
-This endpoint requires the user to already be
-logged into Master Control.
-
-The organization, user, business, and platform
-are stored inside a signed OAuth state token.
-====================================================
 */
 
 router.get(
@@ -60,23 +51,14 @@ router.get(
 
         try {
 
-            /*
-            ============================================
-            ENVIRONMENT
-            ============================================
-            */
-
             const appId =
                 process.env.META_APP_ID;
-
 
             const configId =
                 process.env.META_CONFIG_ID;
 
-
             const redirectUri =
                 process.env.META_REDIRECT_URI;
-
 
             const jwtSecret =
                 process.env.JWT_SECRET;
@@ -98,12 +80,6 @@ router.get(
 
             }
 
-
-            /*
-            ============================================
-            MASTER CONTROL AUTH
-            ============================================
-            */
 
             const organizationId =
                 Number(
@@ -141,12 +117,6 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            CONNECTION TARGET
-            ============================================
-            */
-
             const businessId =
                 req.query.businessId
                     ? Number(
@@ -165,12 +135,6 @@ router.get(
 
                     : null;
 
-
-            /*
-            ============================================
-            VALIDATE BUSINESS
-            ============================================
-            */
 
             if (
                 businessId !== null
@@ -214,9 +178,7 @@ router.get(
                         );
 
 
-                if (
-                    !business
-                ) {
+                if (!business) {
 
                     return res
                         .status(404)
@@ -229,12 +191,6 @@ router.get(
 
             }
 
-
-            /*
-            ============================================
-            VALIDATE PLATFORM
-            ============================================
-            */
 
             if (
                 platform !== null
@@ -254,21 +210,9 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            SIGNED OAUTH STATE
-            ============================================
-
-            This preserves the correct Master Control
-            tenant while the user leaves the app and
-            authenticates with Meta.
-            ============================================
-            */
-
             const state =
                 jwt.sign(
                     {
-
                         purpose:
                             "meta_oauth",
 
@@ -284,7 +228,6 @@ router.get(
                             crypto
                                 .randomBytes(16)
                                 .toString("hex")
-
                     },
                     jwtSecret,
                     {
@@ -293,12 +236,6 @@ router.get(
                     }
                 );
 
-
-            /*
-            ============================================
-            META AUTHORIZATION URL
-            ============================================
-            */
 
             const authorizationUrl =
                 new URL(
@@ -346,12 +283,6 @@ router.get(
                 );
 
 
-            /*
-            ============================================
-            RESPONSE
-            ============================================
-            */
-
             return res.json({
 
                 provider:
@@ -381,13 +312,11 @@ router.get(
             return res
                 .status(500)
                 .json({
-
                     error:
                         "Unable to start Meta connection.",
 
                     details:
                         error.message
-
                 });
 
         }
@@ -400,14 +329,6 @@ router.get(
 ====================================================
 GET /api/meta/callback
 ====================================================
-
-Meta redirects directly to this endpoint.
-
-This endpoint must NOT require the normal
-Master Control Authorization header.
-
-Security comes from the signed OAuth state.
-====================================================
 */
 
 router.get(
@@ -416,23 +337,14 @@ router.get(
 
         try {
 
-            /*
-            ============================================
-            ENVIRONMENT
-            ============================================
-            */
-
             const appId =
                 process.env.META_APP_ID;
-
 
             const appSecret =
                 process.env.META_APP_SECRET;
 
-
             const redirectUri =
                 process.env.META_REDIRECT_URI;
-
 
             const jwtSecret =
                 process.env.JWT_SECRET;
@@ -454,12 +366,6 @@ router.get(
 
             }
 
-
-            /*
-            ============================================
-            META CANCEL / ERROR
-            ============================================
-            */
 
             if (
                 req.query.error
@@ -486,12 +392,6 @@ router.get(
 
             }
 
-
-            /*
-            ============================================
-            AUTHORIZATION CODE + STATE
-            ============================================
-            */
 
             const code =
                 typeof req.query.code ===
@@ -525,12 +425,6 @@ router.get(
 
             }
 
-
-            /*
-            ============================================
-            VERIFY STATE
-            ============================================
-            */
 
             let statePayload;
 
@@ -620,12 +514,6 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            VERIFY ORGANIZATION
-            ============================================
-            */
-
             const organization =
                 database
                     .prepare(`
@@ -642,9 +530,7 @@ router.get(
                     );
 
 
-            if (
-                !organization
-            ) {
+            if (!organization) {
 
                 return res
                     .status(404)
@@ -655,12 +541,6 @@ router.get(
 
             }
 
-
-            /*
-            ============================================
-            VERIFY BUSINESS
-            ============================================
-            */
 
             if (
                 businessId
@@ -684,9 +564,7 @@ router.get(
                         );
 
 
-                if (
-                    !business
-                ) {
+                if (!business) {
 
                     return res
                         .status(404)
@@ -699,12 +577,6 @@ router.get(
 
             }
 
-
-            /*
-            ============================================
-            EXCHANGE CODE FOR TOKEN
-            ============================================
-            */
 
             const tokenUrl =
                 new URL(
@@ -779,7 +651,6 @@ router.get(
                 return res
                     .status(502)
                     .json({
-
                         error:
                             "Unable to exchange Meta authorization code.",
 
@@ -788,29 +659,16 @@ router.get(
                                 ?.error
                                 ?.message ||
                             "Unknown Meta token error."
-
                     });
 
             }
 
-
-            /*
-            ============================================
-            ENCRYPT TOKEN
-            ============================================
-            */
 
             const encryptedAccessToken =
                 encryptToken(
                     tokenData.access_token
                 );
 
-
-            /*
-            ============================================
-            TOKEN EXPIRATION
-            ============================================
-            */
 
             let tokenExpiresAt =
                 null;
@@ -841,34 +699,19 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            SAVE META OAUTH CONNECTION
-            ============================================
-            */
-
             database
                 .prepare(`
                     INSERT INTO social_oauth_connections (
 
                         organization_id,
-
                         provider,
-
                         provider_user_id,
-
                         provider_user_name,
-
                         access_token_encrypted,
-
                         refresh_token_encrypted,
-
                         token_expires_at,
-
                         scopes,
-
                         created_at,
-
                         updated_at
 
                     )
@@ -909,12 +752,6 @@ router.get(
                 );
 
 
-            /*
-            ============================================
-            LOG SUCCESS
-            ============================================
-            */
-
             console.log(
                 "✅ Meta OAuth connection saved:",
                 {
@@ -927,12 +764,6 @@ router.get(
                 }
             );
 
-
-            /*
-            ============================================
-            RETURN TO MASTER CONTROL
-            ============================================
-            */
 
             const params =
                 new URLSearchParams();
@@ -986,13 +817,11 @@ router.get(
             return res
                 .status(500)
                 .json({
-
                     error:
                         "Unable to complete Meta connection.",
 
                     details:
                         error.message
-
                 });
 
         }
@@ -1005,15 +834,6 @@ router.get(
 ====================================================
 GET /api/meta/assets
 ====================================================
-
-Loads the Facebook Pages and linked Instagram
-professional accounts available through the
-organization's saved Meta connection.
-
-This endpoint requires Master Control auth.
-
-Access tokens NEVER leave the server.
-====================================================
 */
 
 router.get(
@@ -1022,12 +842,6 @@ router.get(
     async (req, res) => {
 
         try {
-
-            /*
-            ============================================
-            ORGANIZATION
-            ============================================
-            */
 
             const organizationId =
                 Number(
@@ -1053,27 +867,15 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            LOAD META CONNECTION
-            ============================================
-            */
-
             const connection =
                 database
                     .prepare(`
                         SELECT
-
                             id,
-
                             organization_id,
-
                             provider,
-
                             access_token_encrypted,
-
                             token_expires_at,
-
                             updated_at
 
                         FROM social_oauth_connections
@@ -1103,12 +905,6 @@ router.get(
 
             }
 
-
-            /*
-            ============================================
-            CHECK EXPIRATION
-            ============================================
-            */
 
             if (
                 connection.token_expires_at
@@ -1142,12 +938,6 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            DECRYPT TOKEN
-            ============================================
-            */
-
             const accessToken =
                 decryptToken(
                     connection
@@ -1155,9 +945,7 @@ router.get(
                 );
 
 
-            if (
-                !accessToken
-            ) {
+            if (!accessToken) {
 
                 return res
                     .status(500)
@@ -1169,15 +957,9 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            META GRAPH REQUEST
-            ============================================
-            */
-
             const graphUrl =
                 new URL(
-                    "https://graph.facebook.com/me/accounts"
+                    "https://graph.facebook.com/v26.0/me/accounts"
                 );
 
 
@@ -1234,7 +1016,6 @@ router.get(
                 return res
                     .status(502)
                     .json({
-
                         error:
                             "Unable to load Meta assets.",
 
@@ -1243,20 +1024,10 @@ router.get(
                                 ?.error
                                 ?.message ||
                             "Unknown Meta error."
-
                     });
 
             }
 
-
-            /*
-            ============================================
-            SANITIZE META RESPONSE
-            ============================================
-
-            NEVER return access tokens to frontend.
-            ============================================
-            */
 
             const pages =
                 Array.isArray(
@@ -1286,7 +1057,6 @@ router.get(
                                 instagram:
                                     instagram
                                         ? {
-
                                             id:
                                                 String(
                                                     instagram.id ||
@@ -1296,7 +1066,6 @@ router.get(
                                             username:
                                                 instagram.username ||
                                                 ""
-
                                         }
                                         : null
 
@@ -1307,12 +1076,6 @@ router.get(
 
                     : [];
 
-
-            /*
-            ============================================
-            RESPONSE
-            ============================================
-            */
 
             return res.json({
 
@@ -1341,13 +1104,11 @@ router.get(
             return res
                 .status(500)
                 .json({
-
                     error:
                         "Unable to discover Meta assets.",
 
                     details:
                         error.message
-
                 });
 
         }
@@ -1360,23 +1121,6 @@ router.get(
 ====================================================
 POST /api/meta/subscribe-page
 ====================================================
-
-Subscribes a Facebook Page to Master Control's
-Meta webhook.
-
-Flow:
-
-Organization Meta token
-        ↓
-Find Page + Page access token
-        ↓
-POST /PAGE_ID/subscribed_apps
-        ↓
-Subscribe to feed events
-
-Page access tokens are NEVER returned to the
-browser or printed to the Terminal.
-====================================================
 */
 
 router.post(
@@ -1385,12 +1129,6 @@ router.post(
     async (req, res) => {
 
         try {
-
-            /*
-            ============================================
-            ORGANIZATION
-            ============================================
-            */
 
             const organizationId =
                 Number(
@@ -1416,12 +1154,6 @@ router.post(
             }
 
 
-            /*
-            ============================================
-            INPUT
-            ============================================
-            */
-
             const pageId =
                 typeof req.body?.pageId ===
                     "string"
@@ -1440,9 +1172,7 @@ router.post(
                 );
 
 
-            if (
-                !pageId
-            ) {
+            if (!pageId) {
 
                 return res
                     .status(400)
@@ -1472,12 +1202,6 @@ router.post(
             }
 
 
-            /*
-            ============================================
-            VERIFY BUSINESS BELONGS TO ORGANIZATION
-            ============================================
-            */
-
             const business =
                 database
                     .prepare(`
@@ -1498,9 +1222,7 @@ router.post(
                     );
 
 
-            if (
-                !business
-            ) {
+            if (!business) {
 
                 return res
                     .status(404)
@@ -1511,12 +1233,6 @@ router.post(
 
             }
 
-
-            /*
-            ============================================
-            VERIFY FACEBOOK ACCOUNT
-            ============================================
-            */
 
             const socialAccount =
                 database
@@ -1540,9 +1256,7 @@ router.post(
                     );
 
 
-            if (
-                !socialAccount
-            ) {
+            if (!socialAccount) {
 
                 return res
                     .status(404)
@@ -1553,12 +1267,6 @@ router.post(
 
             }
 
-
-            /*
-            ============================================
-            PAGE ID MUST MATCH BUSINESS
-            ============================================
-            */
 
             if (
                 socialAccount.external_account_id
@@ -1577,12 +1285,6 @@ router.post(
 
             }
 
-
-            /*
-            ============================================
-            LOAD META CONNECTION
-            ============================================
-            */
 
             const connection =
                 database
@@ -1620,12 +1322,6 @@ router.post(
             }
 
 
-            /*
-            ============================================
-            CHECK TOKEN EXPIRATION
-            ============================================
-            */
-
             if (
                 connection.token_expires_at
             ) {
@@ -1658,12 +1354,6 @@ router.post(
             }
 
 
-            /*
-            ============================================
-            DECRYPT ORGANIZATION META TOKEN
-            ============================================
-            */
-
             const organizationAccessToken =
                 decryptToken(
                     connection
@@ -1671,9 +1361,7 @@ router.post(
                 );
 
 
-            if (
-                !organizationAccessToken
-            ) {
+            if (!organizationAccessToken) {
 
                 return res
                     .status(500)
@@ -1684,15 +1372,6 @@ router.post(
 
             }
 
-
-            /*
-            ============================================
-            LOAD PAGE ACCESS TOKEN
-            ============================================
-
-            The Page token stays entirely server-side.
-            ============================================
-            */
 
             const accountsUrl =
                 new URL(
@@ -1749,7 +1428,6 @@ router.post(
                 return res
                     .status(502)
                     .json({
-
                         error:
                             "Unable to load Facebook Page credentials.",
 
@@ -1758,17 +1436,10 @@ router.post(
                                 ?.error
                                 ?.message ||
                             "Unknown Meta error."
-
                     });
 
             }
 
-
-            /*
-            ============================================
-            FIND REQUESTED PAGE
-            ============================================
-            */
 
             const pages =
                 Array.isArray(
@@ -1787,9 +1458,7 @@ router.post(
                 );
 
 
-            if (
-                !page
-            ) {
+            if (!page) {
 
                 return res
                     .status(404)
@@ -1801,9 +1470,7 @@ router.post(
             }
 
 
-            if (
-                !page.access_token
-            ) {
+            if (!page.access_token) {
 
                 return res
                     .status(502)
@@ -1814,12 +1481,6 @@ router.post(
 
             }
 
-
-            /*
-            ============================================
-            SUBSCRIBE PAGE TO APP
-            ============================================
-            */
 
             const subscribeUrl =
                 new URL(
@@ -1881,7 +1542,6 @@ router.post(
                 return res
                     .status(502)
                     .json({
-
                         error:
                             "Unable to subscribe Facebook Page to webhooks.",
 
@@ -1890,17 +1550,10 @@ router.post(
                                 ?.error
                                 ?.message ||
                             "Meta did not confirm the subscription."
-
                     });
 
             }
 
-
-            /*
-            ============================================
-            SUCCESS
-            ============================================
-            */
 
             console.log(
                 "✅ Facebook Page subscribed to Meta webhook:",
@@ -1930,7 +1583,6 @@ router.post(
                     business.name,
 
                 page: {
-
                     id:
                         String(
                             page.id
@@ -1939,7 +1591,6 @@ router.post(
                     name:
                         page.name ||
                         ""
-
                 },
 
                 subscribedFields: [
@@ -1960,13 +1611,11 @@ router.post(
             return res
                 .status(500)
                 .json({
-
                     error:
                         "Unable to subscribe Facebook Page.",
 
                     details:
                         error.message
-
                 });
 
         }
@@ -1977,13 +1626,1941 @@ router.post(
 
 /*
 ====================================================
-GET /api/meta/permissions
+POST /api/meta/assign-page
+====================================================
+*/
+
+router.post(
+    "/meta/assign-page",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(
+                    req.organizationId
+                );
+
+
+            const businessId =
+                Number(
+                    req.body?.businessId
+                );
+
+
+            const pageId =
+                String(
+                    req.body?.pageId ||
+                    ""
+                ).trim();
+
+
+            const pageName =
+                String(
+                    req.body?.pageName ||
+                    ""
+                ).trim();
+
+
+            if (
+                !Number.isInteger(
+                    organizationId
+                )
+                ||
+                organizationId <= 0
+            ) {
+
+                return res
+                    .status(401)
+                    .json({
+                        error:
+                            "Authentication required."
+                    });
+
+            }
+
+
+            if (
+                !Number.isInteger(
+                    businessId
+                )
+                ||
+                businessId <= 0
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Business ID is required."
+                    });
+
+            }
+
+
+            if (!pageId) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Facebook Page ID is required."
+                    });
+
+            }
+
+
+            const business =
+                database
+                    .prepare(`
+                        SELECT
+                            id,
+                            name
+
+                        FROM businesses
+
+                        WHERE
+                            id = ?
+                            AND organization_id = ?
+                    `)
+                    .get(
+                        businessId,
+                        organizationId
+                    );
+
+
+            if (!business) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Business not found."
+                    });
+
+            }
+
+
+            const account =
+                database
+                    .prepare(`
+                        SELECT
+                            id
+
+                        FROM social_accounts
+
+                        WHERE
+                            business_id = ?
+                            AND platform = 'facebook'
+                    `)
+                    .get(
+                        businessId
+                    );
+
+
+            if (!account) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Facebook social account record not found."
+                    });
+
+            }
+
+
+            database
+                .prepare(`
+                    UPDATE social_accounts
+
+                    SET
+                        account_name = ?,
+                        external_account_id = ?,
+                        connected = 1,
+                        updated_at = CURRENT_TIMESTAMP
+
+                    WHERE
+                        id = ?
+                `)
+                .run(
+                    pageName,
+                    pageId,
+                    account.id
+                );
+
+
+            return res.json({
+
+                success:
+                    true,
+
+                businessId,
+
+                business:
+                    business.name,
+
+                page: {
+                    id:
+                        pageId,
+
+                    name:
+                        pageName
+                }
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Meta Page assignment error:",
+                error
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "Unable to assign Facebook Page.",
+
+                    details:
+                        error.message
+                });
+
+        }
+
+    }
+);
+
+
+/*
+====================================================
+GET /api/meta/page-feed/:pageId
+====================================================
+*/
+
+router.get(
+    "/meta/page-feed/:pageId",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(
+                    req.organizationId
+                );
+
+
+            if (
+                !Number.isInteger(
+                    organizationId
+                )
+                ||
+                organizationId <= 0
+            ) {
+
+                return res
+                    .status(401)
+                    .json({
+                        error:
+                            "Authentication required."
+                    });
+
+            }
+
+
+            const pageId =
+                String(
+                    req.params.pageId ||
+                    ""
+                ).trim();
+
+
+            if (!pageId) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Facebook Page ID is required."
+                    });
+
+            }
+
+
+            const socialAccount =
+                database
+                    .prepare(`
+                        SELECT
+                            social_accounts.id,
+                            social_accounts.business_id,
+                            social_accounts.account_name,
+                            social_accounts.external_account_id,
+                            social_accounts.connected
+
+                        FROM social_accounts
+
+                        INNER JOIN businesses
+                            ON businesses.id =
+                                social_accounts.business_id
+
+                        WHERE
+                            businesses.organization_id = ?
+                            AND social_accounts.platform = 'facebook'
+                            AND social_accounts.external_account_id = ?
+                    `)
+                    .get(
+                        organizationId,
+                        pageId
+                    );
+
+
+            if (!socialAccount) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Facebook Page is not assigned to this organization."
+                    });
+
+            }
+
+
+            const connection =
+                database
+                    .prepare(`
+                        SELECT
+                            access_token_encrypted,
+                            token_expires_at
+
+                        FROM social_oauth_connections
+
+                        WHERE
+                            organization_id = ?
+                            AND provider = 'meta'
+                    `)
+                    .get(
+                        organizationId
+                    );
+
+
+            if (
+                !connection
+                ||
+                !connection.access_token_encrypted
+            ) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Meta is not connected."
+                    });
+
+            }
+
+
+            if (
+                connection.token_expires_at
+            ) {
+
+                const expiration =
+                    new Date(
+                        connection
+                            .token_expires_at
+                    );
+
+
+                if (
+                    !Number.isNaN(
+                        expiration.getTime()
+                    )
+                    &&
+                    expiration.getTime() <=
+                        Date.now()
+                ) {
+
+                    return res
+                        .status(401)
+                        .json({
+                            error:
+                                "Meta connection has expired. Please reconnect."
+                        });
+
+                }
+
+            }
+
+
+            const organizationAccessToken =
+                decryptToken(
+                    connection
+                        .access_token_encrypted
+                );
+
+
+            if (!organizationAccessToken) {
+
+                return res
+                    .status(500)
+                    .json({
+                        error:
+                            "Unable to decrypt Meta connection."
+                    });
+
+            }
+
+
+            const accountsUrl =
+                new URL(
+                    "https://graph.facebook.com/v26.0/me/accounts"
+                );
+
+
+            accountsUrl
+                .searchParams
+                .set(
+                    "fields",
+                    "id,name,access_token"
+                );
+
+
+            accountsUrl
+                .searchParams
+                .set(
+                    "access_token",
+                    organizationAccessToken
+                );
+
+
+            const accountsResponse =
+                await fetch(
+                    accountsUrl,
+                    {
+                        method:
+                            "GET",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const accountsData =
+                await accountsResponse
+                    .json();
+
+
+            if (
+                !accountsResponse.ok
+            ) {
+
+                console.error(
+                    "Meta Page credential lookup failed:",
+                    accountsData
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Unable to load Facebook Page credentials.",
+
+                        meta:
+                            accountsData
+                                ?.error
+                                ?.message ||
+                            "Unknown Meta error."
+                    });
+
+            }
+
+
+            const pages =
+                Array.isArray(
+                    accountsData.data
+                )
+                    ? accountsData.data
+                    : [];
+
+
+            const page =
+                pages.find(
+                    (item) =>
+                        String(
+                            item.id
+                        ) === pageId
+                );
+
+
+            if (!page) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Facebook Page is not available through the current Meta connection."
+                    });
+
+            }
+
+
+            if (!page.access_token) {
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Meta did not return a Page access token."
+                    });
+
+            }
+
+
+            const feedUrl =
+                new URL(
+                    `https://graph.facebook.com/v26.0/${encodeURIComponent(
+                        pageId
+                    )}/feed`
+                );
+
+
+            feedUrl
+                .searchParams
+                .set(
+                    "fields",
+                    "id,message,created_time"
+                );
+
+
+            feedUrl
+                .searchParams
+                .set(
+                    "limit",
+                    "5"
+                );
+
+
+            feedUrl
+                .searchParams
+                .set(
+                    "access_token",
+                    page.access_token
+                );
+
+
+            const feedResponse =
+                await fetch(
+                    feedUrl,
+                    {
+                        method:
+                            "GET",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const feedData =
+                await feedResponse
+                    .json();
+
+
+            if (
+                !feedResponse.ok
+            ) {
+
+                console.error(
+                    "Meta Page feed lookup failed:",
+                    feedData
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Unable to load Facebook Page feed.",
+
+                        meta:
+                            feedData
+                                ?.error
+                                ?.message ||
+                            "Unknown Meta error."
+                    });
+
+            }
+
+
+            return res.json({
+
+                success:
+                    true,
+
+                businessId:
+                    socialAccount
+                        .business_id,
+
+                page: {
+                    id:
+                        pageId,
+
+                    name:
+                        page.name ||
+                        socialAccount
+                            .account_name ||
+                        ""
+                },
+
+                posts:
+                    Array.isArray(
+                        feedData.data
+                    )
+                        ? feedData.data
+                        : []
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Meta Page feed error:",
+                error
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "Unable to load Facebook Page feed.",
+
+                    details:
+                        error.message
+                });
+
+        }
+
+    }
+);
+
+
+/*
+====================================================
+GET /api/meta/page-comments/:pageId
 ====================================================
 
-Returns the permissions attached to the currently
-saved Meta access token.
+Loads recent comments from recent Facebook Page
+posts.
 
-The access token itself is never returned.
+Nothing is written to the Master Control database
+yet. This is only a read/test endpoint.
+
+The Page access token stays server-side.
+====================================================
+*/
+
+router.get(
+    "/meta/page-comments/:pageId",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(
+                    req.organizationId
+                );
+
+
+            if (
+                !Number.isInteger(
+                    organizationId
+                )
+                ||
+                organizationId <= 0
+            ) {
+
+                return res
+                    .status(401)
+                    .json({
+                        error:
+                            "Authentication required."
+                    });
+
+            }
+
+
+            const pageId =
+                String(
+                    req.params.pageId ||
+                    ""
+                ).trim();
+
+
+            if (!pageId) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Facebook Page ID is required."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            VERIFY PAGE ASSIGNMENT
+            ============================================
+            */
+
+            const socialAccount =
+                database
+                    .prepare(`
+                        SELECT
+                            social_accounts.id,
+                            social_accounts.business_id,
+                            social_accounts.account_name,
+                            social_accounts.external_account_id,
+                            social_accounts.connected,
+                            businesses.name AS business_name
+
+                        FROM social_accounts
+
+                        INNER JOIN businesses
+                            ON businesses.id =
+                                social_accounts.business_id
+
+                        WHERE
+                            businesses.organization_id = ?
+                            AND social_accounts.platform = 'facebook'
+                            AND social_accounts.external_account_id = ?
+                    `)
+                    .get(
+                        organizationId,
+                        pageId
+                    );
+
+
+            if (!socialAccount) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Facebook Page is not assigned to this organization."
+                    });
+
+            }
+
+
+            if (
+                Number(
+                    socialAccount.connected
+                ) !== 1
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Facebook Page is not marked as connected."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            LOAD META CONNECTION
+            ============================================
+            */
+
+            const connection =
+                database
+                    .prepare(`
+                        SELECT
+                            access_token_encrypted,
+                            token_expires_at
+
+                        FROM social_oauth_connections
+
+                        WHERE
+                            organization_id = ?
+                            AND provider = 'meta'
+                    `)
+                    .get(
+                        organizationId
+                    );
+
+
+            if (
+                !connection
+                ||
+                !connection
+                    .access_token_encrypted
+            ) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Meta is not connected."
+                    });
+
+            }
+
+
+            if (
+                connection.token_expires_at
+            ) {
+
+                const expiration =
+                    new Date(
+                        connection
+                            .token_expires_at
+                    );
+
+
+                if (
+                    !Number.isNaN(
+                        expiration.getTime()
+                    )
+                    &&
+                    expiration.getTime() <=
+                        Date.now()
+                ) {
+
+                    return res
+                        .status(401)
+                        .json({
+                            error:
+                                "Meta connection has expired. Please reconnect."
+                        });
+
+                }
+
+            }
+
+
+            const organizationAccessToken =
+                decryptToken(
+                    connection
+                        .access_token_encrypted
+                );
+
+
+            if (!organizationAccessToken) {
+
+                return res
+                    .status(500)
+                    .json({
+                        error:
+                            "Unable to decrypt Meta connection."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            GET PAGE ACCESS TOKEN
+            ============================================
+            */
+
+            const accountsUrl =
+                new URL(
+                    "https://graph.facebook.com/v26.0/me/accounts"
+                );
+
+
+            accountsUrl
+                .searchParams
+                .set(
+                    "fields",
+                    "id,name,access_token"
+                );
+
+
+            accountsUrl
+                .searchParams
+                .set(
+                    "access_token",
+                    organizationAccessToken
+                );
+
+
+            const accountsResponse =
+                await fetch(
+                    accountsUrl,
+                    {
+                        method:
+                            "GET",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const accountsData =
+                await accountsResponse
+                    .json();
+
+
+            if (
+                !accountsResponse.ok
+            ) {
+
+                console.error(
+                    "Meta Page credential lookup failed:",
+                    accountsData
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Unable to load Facebook Page credentials.",
+
+                        meta:
+                            accountsData
+                                ?.error
+                                ?.message ||
+                            "Unknown Meta error."
+                    });
+
+            }
+
+
+            const availablePages =
+                Array.isArray(
+                    accountsData.data
+                )
+                    ? accountsData.data
+                    : [];
+
+
+            const page =
+                availablePages.find(
+                    (item) =>
+                        String(
+                            item.id
+                        ) === pageId
+                );
+
+
+            if (!page) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Facebook Page is not available through the current Meta connection."
+                    });
+
+            }
+
+
+            if (!page.access_token) {
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Meta did not return a Page access token."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            LOAD RECENT POSTS + COMMENTS
+            ============================================
+            */
+
+            const feedUrl =
+                new URL(
+                    `https://graph.facebook.com/v26.0/${encodeURIComponent(
+                        pageId
+                    )}/feed`
+                );
+
+
+            feedUrl
+                .searchParams
+                .set(
+                    "fields",
+                    [
+                        "id",
+                        "message",
+                        "created_time",
+                        "comments.limit(25){id,message,created_time,from{id,name}}"
+                    ].join(",")
+                );
+
+
+            feedUrl
+                .searchParams
+                .set(
+                    "limit",
+                    "10"
+                );
+
+
+            feedUrl
+                .searchParams
+                .set(
+                    "access_token",
+                    page.access_token
+                );
+
+
+            const feedResponse =
+                await fetch(
+                    feedUrl,
+                    {
+                        method:
+                            "GET",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const feedData =
+                await feedResponse
+                    .json();
+
+
+            if (
+                !feedResponse.ok
+            ) {
+
+                console.error(
+                    "Meta Page comments lookup failed:",
+                    feedData
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Unable to load Facebook Page comments.",
+
+                        meta:
+                            feedData
+                                ?.error
+                                ?.message ||
+                            "Unknown Meta error."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            FLATTEN COMMENTS FOR MASTER CONTROL
+            ============================================
+            */
+
+            const posts =
+                Array.isArray(
+                    feedData.data
+                )
+                    ? feedData.data
+                    : [];
+
+
+            const comments =
+                [];
+
+
+            for (
+                const post of posts
+            ) {
+
+                const postComments =
+                    Array.isArray(
+                        post
+                            ?.comments
+                            ?.data
+                    )
+                        ? post.comments.data
+                        : [];
+
+
+                for (
+                    const comment of postComments
+                ) {
+
+                    comments.push({
+
+                        id:
+                            String(
+                                comment.id ||
+                                ""
+                            ),
+
+                        message:
+                            comment.message ||
+                            "",
+
+                        createdTime:
+                            comment.created_time ||
+                            null,
+
+                        author: {
+
+                            id:
+                                comment.from?.id
+                                    ? String(
+                                        comment.from.id
+                                    )
+                                    : "",
+
+                            name:
+                                comment.from?.name ||
+                                ""
+
+                        },
+
+                        post: {
+
+                            id:
+                                String(
+                                    post.id ||
+                                    ""
+                                ),
+
+                            message:
+                                post.message ||
+                                "",
+
+                            createdTime:
+                                post.created_time ||
+                                null
+
+                        }
+
+                    });
+
+                }
+
+            }
+
+
+            /*
+            ============================================
+            NEWEST COMMENTS FIRST
+            ============================================
+            */
+
+            comments.sort(
+                (
+                    first,
+                    second
+                ) => {
+
+                    const firstTime =
+                        first.createdTime
+                            ? new Date(
+                                first.createdTime
+                            ).getTime()
+                            : 0;
+
+
+                    const secondTime =
+                        second.createdTime
+                            ? new Date(
+                                second.createdTime
+                            ).getTime()
+                            : 0;
+
+
+                    return (
+                        secondTime -
+                        firstTime
+                    );
+
+                }
+            );
+
+
+            /*
+            ============================================
+            SAFE RESPONSE
+            ============================================
+            */
+
+            return res.json({
+
+                success:
+                    true,
+
+                businessId:
+                    socialAccount
+                        .business_id,
+
+                business:
+                    socialAccount
+                        .business_name,
+
+                platform:
+                    "facebook",
+
+                page: {
+
+                    id:
+                        pageId,
+
+                    name:
+                        page.name ||
+                        socialAccount
+                            .account_name ||
+                        ""
+
+                },
+
+                postsChecked:
+                    posts.length,
+
+                commentCount:
+                    comments.length,
+
+                comments
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Meta Page comments error:",
+                error
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "Unable to load Facebook Page comments.",
+
+                    details:
+                        error.message
+                });
+
+        }
+
+    }
+);
+
+/*
+====================================================
+POST /api/meta/sync-comments/:pageId
+====================================================
+
+Fetches recent Facebook comments and saves new
+comments into the Master Control comments table.
+
+Duplicate Facebook comments are skipped using
+external_comment_id.
+====================================================
+*/
+
+router.post(
+    "/meta/sync-comments/:pageId",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(
+                    req.organizationId
+                );
+
+            const pageId =
+                String(
+                    req.params.pageId || ""
+                ).trim();
+
+
+            if (
+                !Number.isInteger(organizationId)
+                ||
+                organizationId <= 0
+            ) {
+
+                return res
+                    .status(401)
+                    .json({
+                        error:
+                            "Authentication required."
+                    });
+
+            }
+
+
+            if (!pageId) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Facebook Page ID is required."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            FIND BUSINESS + FACEBOOK ACCOUNT
+            ============================================
+            */
+
+            const socialAccount =
+                database
+                    .prepare(`
+                        SELECT
+                            social_accounts.id,
+                            social_accounts.business_id,
+                            social_accounts.account_name,
+                            social_accounts.external_account_id,
+                            social_accounts.connected,
+                            businesses.name AS business_name
+
+                        FROM social_accounts
+
+                        INNER JOIN businesses
+                            ON businesses.id =
+                                social_accounts.business_id
+
+                        WHERE
+                            businesses.organization_id = ?
+                            AND social_accounts.platform = 'facebook'
+                            AND social_accounts.external_account_id = ?
+                    `)
+                    .get(
+                        organizationId,
+                        pageId
+                    );
+
+
+            if (!socialAccount) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Facebook Page is not assigned to this organization."
+                    });
+
+            }
+
+
+            if (
+                Number(
+                    socialAccount.connected
+                ) !== 1
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Facebook Page is not connected."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            LOAD META CONNECTION
+            ============================================
+            */
+
+            const connection =
+                database
+                    .prepare(`
+                        SELECT
+                            access_token_encrypted,
+                            token_expires_at
+
+                        FROM social_oauth_connections
+
+                        WHERE
+                            organization_id = ?
+                            AND provider = 'meta'
+                    `)
+                    .get(
+                        organizationId
+                    );
+
+
+            if (
+                !connection
+                ||
+                !connection.access_token_encrypted
+            ) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Meta is not connected."
+                    });
+
+            }
+
+
+            if (
+                connection.token_expires_at
+            ) {
+
+                const expiration =
+                    new Date(
+                        connection.token_expires_at
+                    );
+
+
+                if (
+                    !Number.isNaN(
+                        expiration.getTime()
+                    )
+                    &&
+                    expiration.getTime() <= Date.now()
+                ) {
+
+                    return res
+                        .status(401)
+                        .json({
+                            error:
+                                "Meta connection has expired. Please reconnect."
+                        });
+
+                }
+
+            }
+
+
+            const organizationAccessToken =
+                decryptToken(
+                    connection.access_token_encrypted
+                );
+
+
+            if (!organizationAccessToken) {
+
+                return res
+                    .status(500)
+                    .json({
+                        error:
+                            "Unable to decrypt Meta connection."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            GET PAGE ACCESS TOKEN
+            ============================================
+            */
+
+            const accountsUrl =
+                new URL(
+                    "https://graph.facebook.com/v26.0/me/accounts"
+                );
+
+
+            accountsUrl.searchParams.set(
+                "fields",
+                "id,name,access_token"
+            );
+
+
+            accountsUrl.searchParams.set(
+                "access_token",
+                organizationAccessToken
+            );
+
+
+            const accountsResponse =
+                await fetch(
+                    accountsUrl,
+                    {
+                        method:
+                            "GET",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const accountsData =
+                await accountsResponse.json();
+
+
+            if (!accountsResponse.ok) {
+
+                console.error(
+                    "Meta Page credential lookup failed:",
+                    accountsData
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Unable to load Facebook Page credentials.",
+
+                        meta:
+                            accountsData
+                                ?.error
+                                ?.message ||
+                            "Unknown Meta error."
+                    });
+
+            }
+
+
+            const pages =
+                Array.isArray(
+                    accountsData.data
+                )
+                    ? accountsData.data
+                    : [];
+
+
+            const page =
+                pages.find(
+                    item =>
+                        String(item.id) === pageId
+                );
+
+
+            if (!page) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Facebook Page is not available through the current Meta connection."
+                    });
+
+            }
+
+
+            if (!page.access_token) {
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Meta did not return a Page access token."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            FETCH POSTS + COMMENTS
+            ============================================
+            */
+
+            const feedUrl =
+                new URL(
+                    `https://graph.facebook.com/v26.0/${encodeURIComponent(
+                        pageId
+                    )}/feed`
+                );
+
+
+            feedUrl.searchParams.set(
+                "fields",
+                [
+                    "id",
+                    "message",
+                    "created_time",
+                    "comments.limit(50){id,message,created_time,from{id,name}}"
+                ].join(",")
+            );
+
+
+            feedUrl.searchParams.set(
+                "limit",
+                "25"
+            );
+
+
+            feedUrl.searchParams.set(
+                "access_token",
+                page.access_token
+            );
+
+
+            const feedResponse =
+                await fetch(
+                    feedUrl,
+                    {
+                        method:
+                            "GET",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const feedData =
+                await feedResponse.json();
+
+
+            if (!feedResponse.ok) {
+
+                console.error(
+                    "Facebook comment sync lookup failed:",
+                    feedData
+                );
+
+
+                return res
+                    .status(502)
+                    .json({
+                        error:
+                            "Unable to load Facebook comments.",
+
+                        meta:
+                            feedData
+                                ?.error
+                                ?.message ||
+                            "Unknown Meta error."
+                    });
+
+            }
+
+
+            /*
+            ============================================
+            PREPARE DATABASE STATEMENTS
+            ============================================
+            */
+
+            const findExisting =
+                database.prepare(`
+                    SELECT id
+
+                    FROM comments
+
+                    WHERE
+                        platform = 'facebook'
+                        AND external_comment_id = ?
+                `);
+
+
+            const insertComment =
+                database.prepare(`
+                    INSERT INTO comments (
+                        business_id,
+                        platform,
+                        author,
+                        content,
+                        status,
+                        created_at,
+                        source,
+                        external_comment_id
+                    )
+
+                    VALUES (
+                        ?,
+                        'facebook',
+                        ?,
+                        ?,
+                        'pending',
+                        ?,
+                        'meta',
+                        ?
+                    )
+                `);
+
+
+            /*
+            ============================================
+            SYNC COMMENTS
+            ============================================
+            */
+
+            const posts =
+                Array.isArray(
+                    feedData.data
+                )
+                    ? feedData.data
+                    : [];
+
+
+            let discovered =
+                0;
+
+            let inserted =
+                0;
+
+            let duplicates =
+                0;
+
+            let skipped =
+                0;
+
+
+            const insertedComments =
+                [];
+
+
+            const syncTransaction =
+                database.transaction(
+                    () => {
+
+                        for (
+                            const post of posts
+                        ) {
+
+                            const postComments =
+                                Array.isArray(
+                                    post
+                                        ?.comments
+                                        ?.data
+                                )
+                                    ? post.comments.data
+                                    : [];
+
+
+                            for (
+                                const comment of postComments
+                            ) {
+
+                                discovered++;
+
+
+                                const externalCommentId =
+                                    String(
+                                        comment.id || ""
+                                    ).trim();
+
+
+                                const content =
+                                    String(
+                                        comment.message || ""
+                                    ).trim();
+
+
+                                if (
+                                    !externalCommentId
+                                    ||
+                                    !content
+                                ) {
+
+                                    skipped++;
+
+                                    continue;
+
+                                }
+
+
+                                const existing =
+                                    findExisting.get(
+                                        externalCommentId
+                                    );
+
+
+                                if (existing) {
+
+                                    duplicates++;
+
+                                    continue;
+
+                                }
+
+
+                                const author =
+                                    String(
+                                        comment
+                                            ?.from
+                                            ?.name ||
+                                        "Facebook User"
+                                    ).trim();
+
+
+                                const createdAt =
+                                    comment.created_time
+                                        ? new Date(
+                                            comment.created_time
+                                        ).toISOString()
+                                        : new Date()
+                                            .toISOString();
+
+
+                                const result =
+                                    insertComment.run(
+                                        socialAccount.business_id,
+                                        author,
+                                        content,
+                                        createdAt,
+                                        externalCommentId
+                                    );
+
+
+                                inserted++;
+
+
+                                insertedComments.push({
+
+                                    id:
+                                        Number(
+                                            result.lastInsertRowid
+                                        ),
+
+                                    externalCommentId,
+
+                                    author,
+
+                                    content,
+
+                                    createdAt
+
+                                });
+
+                            }
+
+                        }
+
+                    }
+                );
+
+
+            syncTransaction();
+
+
+            /*
+            ============================================
+            RESPONSE
+            ============================================
+            */
+
+            console.log(
+                "✅ Facebook comments synced:",
+                {
+                    organizationId,
+                    businessId:
+                        socialAccount.business_id,
+                    pageId,
+                    discovered,
+                    inserted,
+                    duplicates,
+                    skipped
+                }
+            );
+
+
+            return res.json({
+
+                success:
+                    true,
+
+                businessId:
+                    socialAccount.business_id,
+
+                business:
+                    socialAccount.business_name,
+
+                platform:
+                    "facebook",
+
+                page: {
+
+                    id:
+                        pageId,
+
+                    name:
+                        page.name ||
+                        socialAccount.account_name ||
+                        ""
+
+                },
+
+                postsChecked:
+                    posts.length,
+
+                discovered,
+
+                inserted,
+
+                duplicates,
+
+                skipped,
+
+                insertedComments
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Facebook comment sync error:",
+                error
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "Unable to sync Facebook comments.",
+
+                    details:
+                        error.message
+                });
+
+        }
+
+    }
+);
+
+/*
+====================================================
+GET /api/meta/permissions
 ====================================================
 */
 
@@ -2018,12 +3595,6 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            LOAD SAVED META CONNECTION
-            ============================================
-            */
-
             const connection =
                 database
                     .prepare(`
@@ -2057,12 +3628,6 @@ router.get(
             }
 
 
-            /*
-            ============================================
-            DECRYPT TOKEN SERVER-SIDE
-            ============================================
-            */
-
             const accessToken =
                 decryptToken(
                     connection
@@ -2070,11 +3635,17 @@ router.get(
                 );
 
 
-            /*
-            ============================================
-            ASK META FOR TOKEN PERMISSIONS
-            ============================================
-            */
+            if (!accessToken) {
+
+                return res
+                    .status(500)
+                    .json({
+                        error:
+                            "Unable to decrypt Meta connection."
+                    });
+
+            }
+
 
             const permissionsUrl =
                 new URL(
@@ -2123,7 +3694,6 @@ router.get(
                 return res
                     .status(502)
                     .json({
-
                         error:
                             "Unable to load Meta permissions.",
 
@@ -2132,17 +3702,10 @@ router.get(
                                 ?.error
                                 ?.message ||
                             "Unknown Meta error."
-
                     });
 
             }
 
-
-            /*
-            ============================================
-            SAFE RESPONSE
-            ============================================
-            */
 
             const permissions =
                 Array.isArray(
@@ -2150,13 +3713,11 @@ router.get(
                 )
                     ? metaData.data.map(
                         (item) => ({
-
                             permission:
                                 item.permission,
 
                             status:
                                 item.status
-
                         })
                     )
                     : [];
@@ -2182,19 +3743,18 @@ router.get(
             return res
                 .status(500)
                 .json({
-
                     error:
                         "Unable to inspect Meta permissions.",
 
                     details:
                         error.message
-
                 });
 
         }
 
     }
 );
+
 
 /*
 ====================================================

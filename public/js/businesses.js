@@ -65,6 +65,7 @@ const saveBusinessButton =
         "save-business"
     );
 
+
 let businesses = [];
 
 let socialAccounts = [];
@@ -72,40 +73,62 @@ let socialAccounts = [];
 
 /*
 ====================================================
-Supported Social Platforms
+SUPPORTED SOCIAL PLATFORMS
 ====================================================
 */
 
 const socialPlatforms = [
+
     {
-        key: "facebook",
-        label: "Facebook",
-        icon: "f"
+        key:
+            "facebook",
+
+        label:
+            "Facebook",
+
+        icon:
+            "f"
     },
 
     {
-        key: "instagram",
-        label: "Instagram",
-        icon: "◎"
+        key:
+            "instagram",
+
+        label:
+            "Instagram",
+
+        icon:
+            "◎"
     },
 
     {
-        key: "youtube",
-        label: "YouTube",
-        icon: "▶"
+        key:
+            "youtube",
+
+        label:
+            "YouTube",
+
+        icon:
+            "▶"
     },
 
     {
-        key: "tiktok",
-        label: "TikTok",
-        icon: "♪"
+        key:
+            "tiktok",
+
+        label:
+            "TikTok",
+
+        icon:
+            "♪"
     }
+
 ];
 
 
 /*
 ====================================================
-Validate Required Elements
+VALIDATE REQUIRED ELEMENTS
 ====================================================
 */
 
@@ -183,7 +206,8 @@ function validatePageElements() {
                     !element
             )
             .map(
-                ([id]) => id
+                ([id]) =>
+                    id
             );
 
 
@@ -234,7 +258,7 @@ function validatePageElements() {
 
 /*
 ====================================================
-Load Businesses + Social Accounts
+LOAD BUSINESSES + SOCIAL ACCOUNTS
 ====================================================
 */
 
@@ -254,11 +278,13 @@ async function loadBusinesses() {
             socialAccountResult
         ] =
             await Promise.all([
+
                 MasterControlAPI
                     .getBusinesses(),
 
                 MasterControlAPI
                     .getSocialAccounts()
+
             ]);
 
 
@@ -316,7 +342,7 @@ async function loadBusinesses() {
 
 /*
 ====================================================
-Loading State
+LOADING STATE
 ====================================================
 */
 
@@ -337,7 +363,7 @@ function renderLoading() {
 
 /*
 ====================================================
-Render Business Cards
+RENDER BUSINESS CARDS
 ====================================================
 */
 
@@ -536,7 +562,7 @@ function renderBusinesses() {
 
 /*
 ====================================================
-Render Social Platforms
+RENDER SOCIAL PLATFORMS
 ====================================================
 */
 
@@ -610,40 +636,54 @@ function renderSocialPlatforms(
                         </div>
 
 
-                        <div class="business-social-controls">
+                        <div
+                            class="business-social-controls"
+                        >
 
-                        <span
-                            class="
-                                business-social-status
+                            <span
+                                class="
+                                    business-social-status
+                                    ${
+                                        connected
+                                            ? "connected"
+                                            : "not-connected"
+                                    }
+                                "
+                            >
                                 ${
                                     connected
-                                        ? "connected"
-                                        : "not-connected"
+                                        ? "Connected"
+                                        : "Not Connected"
                                 }
-                            "
-                        >
-                            ${
-                                connected
-                                    ? "Connected"
-                                    : "Not Connected"
-                            }
-                        </span>
-                    
-                        <button
-                            class="mc-button social-account-button"
-                            type="button"
-                            data-account-id="${account?.id || ""}"
-                            data-business-id="${account?.business_id || ""}"
-                            data-platform="${platform.key}"
-                        >
-                            ${
-                                connected
-                                    ? "Manage"
-                                    : "Connect"
-                            }
-                        </button>
-                    
-                    </div>
+                            </span>
+
+
+                            <button
+                                class="mc-button social-account-button"
+                                type="button"
+
+                                data-account-id="${
+                                    account?.id ||
+                                    ""
+                                }"
+
+                                data-business-id="${
+                                    account?.business_id ||
+                                    ""
+                                }"
+
+                                data-platform="${
+                                    platform.key
+                                }"
+                            >
+                                ${
+                                    connected
+                                        ? "Manage"
+                                        : "Connect"
+                                }
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -658,7 +698,7 @@ function renderSocialPlatforms(
 
 /*
 ====================================================
-Get Social Accounts for Business
+GET SOCIAL ACCOUNTS FOR BUSINESS
 ====================================================
 */
 
@@ -681,7 +721,7 @@ function getBusinessSocialAccounts(
 
 /*
 ====================================================
-Card Events
+CARD EVENTS
 ====================================================
 */
 
@@ -734,43 +774,50 @@ function attachBusinessCardEvents() {
             }
         );
 
-        document
-    .querySelectorAll(
-        ".social-account-button"
-    )
-    .forEach(
-        (button) => {
 
-            button.addEventListener(
-                "click",
-                () => {
+    document
+        .querySelectorAll(
+            ".social-account-button"
+        )
+        .forEach(
+            (button) => {
 
-                    openSocialAccountModal({
-                        accountId:
-                            Number(
-                                button.dataset.accountId
-                            ),
+                button.addEventListener(
+                    "click",
+                    () => {
 
-                        businessId:
-                            Number(
-                                button.dataset.businessId
-                            ),
+                        openSocialAccountModal({
 
-                        platform:
-                            button.dataset.platform
-                    });
+                            accountId:
+                                Number(
+                                    button.dataset
+                                        .accountId
+                                ),
 
-                }
-            );
+                            businessId:
+                                Number(
+                                    button.dataset
+                                        .businessId
+                                ),
 
-        }
-    );
+                            platform:
+                                button.dataset
+                                    .platform
+
+                        });
+
+                    }
+                );
+
+            }
+        );
 
 }
 
+
 /*
 ====================================================
-Open Social Account Modal
+OPEN SOCIAL ACCOUNT MODAL
 ====================================================
 */
 
@@ -787,6 +834,7 @@ function openSocialAccountModal({
                 Number(businessId)
         );
 
+
     if (!business) {
 
         console.error(
@@ -795,24 +843,58 @@ function openSocialAccountModal({
         );
 
         return;
+
     }
 
 
+    const account =
+        socialAccounts.find(
+            (item) =>
+                Number(
+                    item.id
+                ) ===
+                Number(
+                    accountId
+                )
+        );
+
+
+    const connected =
+        Boolean(
+            Number(
+                account?.connected
+            )
+        );
+
+
     const platformNames = {
-        facebook: "Facebook",
-        instagram: "Instagram",
-        youtube: "YouTube",
-        tiktok: "TikTok"
+
+        facebook:
+            "Facebook",
+
+        instagram:
+            "Instagram",
+
+        youtube:
+            "YouTube",
+
+        tiktok:
+            "TikTok"
+
     };
 
 
     const platformName =
-        platformNames[platform] ||
+        platformNames[
+            platform
+        ] ||
         platform;
 
 
     const content =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
 
     content.className =
@@ -821,61 +903,142 @@ function openSocialAccountModal({
 
     content.innerHTML = `
 
-        <div class="social-connect-heading">
+        <div
+            class="social-connect-heading"
+        >
 
-            <span class="system-label">
+            <span
+                class="system-label"
+            >
                 SOCIAL ACCOUNT CONNECTION
             </span>
 
             <h3>
-                ${escapeHtml(platformName)}
+                ${escapeHtml(
+                    platformName
+                )}
             </h3>
 
             <p>
-                Connect
+                ${
+                    connected
+                        ? "Manage"
+                        : "Connect"
+                }
+
                 <strong>
-                    ${escapeHtml(business.name)}
+                    ${escapeHtml(
+                        business.name
+                    )}
                 </strong>
-                to ${escapeHtml(platformName)}.
+
+                on
+
+                ${escapeHtml(
+                    platformName
+                )}.
             </p>
 
         </div>
 
 
-        <div class="social-connect-info">
+        <div
+            class="social-connect-info"
+        >
 
             <div>
-                <span>BUSINESS</span>
+
+                <span>
+                    BUSINESS
+                </span>
 
                 <strong>
-                    ${escapeHtml(business.name)}
+                    ${escapeHtml(
+                        business.name
+                    )}
                 </strong>
+
             </div>
 
+
             <div>
-                <span>PLATFORM</span>
+
+                <span>
+                    PLATFORM
+                </span>
 
                 <strong>
-                    ${escapeHtml(platformName)}
+                    ${escapeHtml(
+                        platformName
+                    )}
                 </strong>
+
             </div>
 
-            <div>
-                <span>STATUS</span>
 
-                <strong class="connection-offline">
-                    NOT CONNECTED
+            <div>
+
+                <span>
+                    STATUS
+                </span>
+
+                <strong
+                    class="${
+                        connected
+                            ? "connection-online"
+                            : "connection-offline"
+                    }"
+                >
+                    ${
+                        connected
+                            ? "CONNECTED"
+                            : "NOT CONNECTED"
+                    }
                 </strong>
+
             </div>
 
         </div>
 
 
-        <p class="social-connect-message">
+        ${
+            connected &&
+            account?.account_name
+                ? `
+                    <div
+                        class="social-connect-info"
+                    >
 
-            Master Control is ready to connect this
-            account. Platform authorization will be
-            configured in the next step.
+                        <div>
+
+                            <span>
+                                ACCOUNT
+                            </span>
+
+                            <strong>
+                                ${escapeHtml(
+                                    account
+                                        .account_name
+                                )}
+                            </strong>
+
+                        </div>
+
+                    </div>
+                `
+                : ""
+        }
+
+
+        <p
+            class="social-connect-message"
+        >
+
+            ${
+                connected
+                    ? "This social account is already connected to Master Control."
+                    : "Master Control is ready to connect this account."
+            }
 
         </p>
 
@@ -883,7 +1046,9 @@ function openSocialAccountModal({
 
 
     const footer =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
 
     footer.className =
@@ -891,31 +1056,21 @@ function openSocialAccountModal({
 
 
     const cancelButton =
-        document.createElement("button");
+        document.createElement(
+            "button"
+        );
 
 
     cancelButton.type =
         "button";
 
+
     cancelButton.className =
         "mc-button";
 
+
     cancelButton.textContent =
-        "Cancel";
-
-
-    const continueButton =
-        document.createElement("button");
-
-
-    continueButton.type =
-        "button";
-
-    continueButton.className =
-        "mc-button primary";
-
-    continueButton.textContent =
-        `Connect ${platformName}`;
+        "Close";
 
 
     cancelButton.addEventListener(
@@ -928,141 +1083,143 @@ function openSocialAccountModal({
     );
 
 
-continueButton.addEventListener(
-    "click",
-    async () => {
-
-        /*
-        ====================================================
-        META CONNECTION
-        ====================================================
-        */
-
-        if (
-            platform !== "facebook" &&
-            platform !== "instagram"
-        ) {
-
-            window.alert(
-                `${platformName} connection is not available yet.`
-            );
-
-            return;
-
-        }
-
-
-        continueButton.disabled =
-            true;
-
-
-        continueButton.textContent =
-            "Connecting...";
-
-
-        try {
-
-            /*
-            ================================================
-            START META OAUTH
-            ================================================
-            */
-
-           const response =
-            await MasterControlAPI.request(
-                `/api/meta/connect?businessId=${businessId}&platform=${encodeURIComponent(platform)}`,
-                {
-                    method:
-                        "GET"
-                }
-            );
-
-
-            if (
-                !response ||
-                !response.authorizationUrl
-            ) {
-
-                throw new Error(
-                    "Meta authorization URL was not returned."
-                );
-
-            }
-
-
-            /*
-            ================================================
-            SAVE CONNECTION TARGET
-            ================================================
-
-            We keep track of which business/platform
-            initiated OAuth.
-
-            The signed server-side state still protects
-            the organization/tenant.
-            */
-
-            sessionStorage.setItem(
-                "masterControlMetaConnection",
-                JSON.stringify({
-                    accountId,
-                    businessId,
-                    platform
-                })
-            );
-
-
-            /*
-            ================================================
-            REDIRECT TO META
-            ================================================
-            */
-
-            window.location.href =
-                response.authorizationUrl;
-
-        }
-        catch (error) {
-
-            console.error(
-                "Meta connection error:",
-                error
-            );
-
-
-            continueButton.disabled =
-                false;
-
-
-            continueButton.textContent =
-                `Connect ${platformName}`;
-
-
-            window.alert(
-                error.message ||
-                "Unable to start the Meta connection."
-            );
-
-        }
-
-    }
-);
-
-
     footer.appendChild(
         cancelButton
     );
 
 
-    footer.appendChild(
-        continueButton
-    );
+    /*
+    ====================================================
+    CONNECT BUTTON
+    ====================================================
+    */
+
+    if (!connected) {
+
+        const continueButton =
+            document.createElement(
+                "button"
+            );
+
+
+        continueButton.type =
+            "button";
+
+
+        continueButton.className =
+            "mc-button primary";
+
+
+        continueButton.textContent =
+            `Connect ${platformName}`;
+
+
+        continueButton.addEventListener(
+            "click",
+            async () => {
+
+                if (
+                    platform !==
+                        "facebook"
+                    &&
+                    platform !==
+                        "instagram"
+                ) {
+
+                    window.alert(
+                        `${platformName} connection is not available yet.`
+                    );
+
+                    return;
+
+                }
+
+
+                continueButton.disabled =
+                    true;
+
+
+                continueButton.textContent =
+                    "Connecting...";
+
+
+                try {
+
+                    const response =
+                        await MasterControlAPI
+                            .startMetaConnection(
+                                businessId,
+                                platform
+                            );
+
+
+                    if (
+                        !response ||
+                        !response
+                            .authorizationUrl
+                    ) {
+
+                        throw new Error(
+                            "Meta authorization URL was not returned."
+                        );
+
+                    }
+
+
+                    sessionStorage
+                        .setItem(
+                            "masterControlMetaConnection",
+                            JSON.stringify({
+                                accountId,
+                                businessId,
+                                platform
+                            })
+                        );
+
+
+                    window.location.href =
+                        response
+                            .authorizationUrl;
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "Meta connection error:",
+                        error
+                    );
+
+
+                    continueButton.disabled =
+                        false;
+
+
+                    continueButton.textContent =
+                        `Connect ${platformName}`;
+
+
+                    window.alert(
+                        error.message ||
+                        "Unable to start the Meta connection."
+                    );
+
+                }
+
+            }
+        );
+
+
+        footer.appendChild(
+            continueButton
+        );
+
+    }
 
 
     MasterModal.open({
 
         title:
-            `Connect ${platformName}`,
+            `${connected ? "Manage" : "Connect"} ${platformName}`,
 
         content,
 
@@ -1075,7 +1232,632 @@ continueButton.addEventListener(
 
 /*
 ====================================================
-Open Business Modal
+HANDLE META OAUTH RETURN
+====================================================
+*/
+
+async function handleMetaReturn() {
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    const metaStatus =
+        params.get(
+            "meta"
+        );
+
+
+    if (
+        metaStatus !==
+        "connected"
+    ) {
+
+        return;
+
+    }
+
+
+    const businessId =
+        Number(
+            params.get(
+                "businessId"
+            )
+        );
+
+
+    const platform =
+        String(
+            params.get(
+                "platform"
+            ) ||
+            "facebook"
+        )
+            .trim()
+            .toLowerCase();
+
+
+    if (
+        !Number.isInteger(
+            businessId
+        )
+        ||
+        businessId <= 0
+    ) {
+
+        console.error(
+            "Meta return missing business ID."
+        );
+
+        return;
+
+    }
+
+
+    /*
+    ====================================================
+    FACEBOOK PAGE ASSIGNMENT
+    ====================================================
+    */
+
+    if (
+        platform ===
+        "facebook"
+    ) {
+
+        await openMetaPageAssignment(
+            businessId
+        );
+
+        return;
+
+    }
+
+
+    /*
+    ====================================================
+    INSTAGRAM
+    ====================================================
+    */
+
+    if (
+        platform ===
+        "instagram"
+    ) {
+
+        window.alert(
+            "Meta connected successfully. Instagram account assignment will be added next."
+        );
+
+
+        cleanMetaUrl();
+
+    }
+
+}
+
+
+/*
+====================================================
+OPEN META PAGE ASSIGNMENT
+====================================================
+*/
+
+async function openMetaPageAssignment(
+    businessId
+) {
+
+    const business =
+        businesses.find(
+            (item) =>
+                Number(
+                    item.id
+                ) ===
+                Number(
+                    businessId
+                )
+        );
+
+
+    if (!business) {
+
+        window.alert(
+            "The business could not be found."
+        );
+
+        cleanMetaUrl();
+
+        return;
+
+    }
+
+
+    const content =
+        document.createElement(
+            "div"
+        );
+
+
+    content.className =
+        "social-connect-modal";
+
+
+    content.innerHTML = `
+
+        <div
+            class="social-connect-heading"
+        >
+
+            <span
+                class="system-label"
+            >
+                META CONNECTION
+            </span>
+
+            <h3>
+                Select Facebook Page
+            </h3>
+
+            <p>
+                Loading Facebook Pages for
+
+                <strong>
+                    ${escapeHtml(
+                        business.name
+                    )}
+                </strong>.
+            </p>
+
+        </div>
+
+
+        <div
+            class="mc-empty"
+        >
+            Loading Meta assets...
+        </div>
+
+    `;
+
+
+    MasterModal.open({
+
+        title:
+            "Facebook Page",
+
+        content
+
+    });
+
+
+    try {
+
+        const result =
+            await MasterControlAPI
+                .getMetaAssets();
+
+
+        const pages =
+            Array.isArray(
+                result.pages
+            )
+                ? result.pages
+                : [];
+
+
+        if (
+            !pages.length
+        ) {
+
+            content.innerHTML = `
+
+                <div
+                    class="social-connect-heading"
+                >
+
+                    <span
+                        class="system-label"
+                    >
+                        META CONNECTION
+                    </span>
+
+                    <h3>
+                        No Pages Found
+                    </h3>
+
+                    <p>
+                        Meta connected successfully,
+                        but no Facebook Pages were returned.
+                    </p>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        renderMetaPageSelector({
+
+            business,
+
+            pages,
+
+            content
+
+        });
+
+    }
+    catch (error) {
+
+        console.error(
+            "Meta asset loading error:",
+            error
+        );
+
+
+        content.innerHTML = `
+
+            <div
+                class="social-connect-heading"
+            >
+
+                <span
+                    class="system-label"
+                >
+                    META CONNECTION ERROR
+                </span>
+
+                <h3>
+                    Unable to Load Pages
+                </h3>
+
+                <p>
+                    ${escapeHtml(
+                        error.message ||
+                        "Unable to load Meta Pages."
+                    )}
+                </p>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/*
+====================================================
+RENDER META PAGE SELECTOR
+====================================================
+*/
+
+function renderMetaPageSelector({
+    business,
+    pages,
+    content
+}) {
+
+    content.innerHTML = `
+
+        <div
+            class="social-connect-heading"
+        >
+
+            <span
+                class="system-label"
+            >
+                META CONNECTION
+            </span>
+
+            <h3>
+                Select Facebook Page
+            </h3>
+
+            <p>
+                Choose the Facebook Page that belongs to
+
+                <strong>
+                    ${escapeHtml(
+                        business.name
+                    )}
+                </strong>.
+            </p>
+
+        </div>
+
+
+        <div
+            class="social-connect-info"
+        >
+
+            <div>
+
+                <span>
+                    BUSINESS
+                </span>
+
+                <strong>
+                    ${escapeHtml(
+                        business.name
+                    )}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <label
+            for="meta-page-select"
+        >
+            Facebook Page
+        </label>
+
+
+        <select
+            id="meta-page-select"
+            class="control-input"
+        >
+
+            <option value="">
+                Select Facebook Page
+            </option>
+
+            ${pages
+                .map(
+                    (page) => `
+
+                        <option
+                            value="${escapeHtml(
+                                page.id
+                            )}"
+                            data-page-name="${escapeHtml(
+                                page.name
+                            )}"
+                        >
+                            ${escapeHtml(
+                                page.name
+                            )}
+                        </option>
+
+                    `
+                )
+                .join("")
+            }
+
+        </select>
+
+
+        <p
+            id="meta-page-status"
+            class="reply-status"
+        ></p>
+
+
+        <div
+            class="social-connect-actions"
+            style="margin-top:20px;"
+        >
+
+            <button
+                id="cancel-meta-page"
+                type="button"
+                class="mc-button"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                id="save-meta-page"
+                type="button"
+                class="mc-button primary"
+            >
+                Connect Page
+            </button>
+
+        </div>
+
+    `;
+
+
+    const select =
+        document.getElementById(
+            "meta-page-select"
+        );
+
+
+    const saveButton =
+        document.getElementById(
+            "save-meta-page"
+        );
+
+
+    const cancelButton =
+        document.getElementById(
+            "cancel-meta-page"
+        );
+
+
+    const status =
+        document.getElementById(
+            "meta-page-status"
+        );
+
+
+    cancelButton.addEventListener(
+        "click",
+        () => {
+
+            MasterModal.close();
+
+            cleanMetaUrl();
+
+        }
+    );
+
+
+    saveButton.addEventListener(
+        "click",
+        async () => {
+
+            const pageId =
+                select.value;
+
+
+            if (!pageId) {
+
+                status.textContent =
+                    "SELECT A FACEBOOK PAGE";
+
+                return;
+
+            }
+
+
+            const selectedOption =
+                select.options[
+                    select.selectedIndex
+                ];
+
+
+            const pageName =
+                selectedOption
+                    .dataset
+                    .pageName ||
+                selectedOption
+                    .textContent
+                    .trim();
+
+
+            saveButton.disabled =
+                true;
+
+
+            saveButton.textContent =
+                "Connecting...";
+
+
+            status.textContent =
+                "ASSIGNING FACEBOOK PAGE...";
+
+
+            try {
+
+                /*
+                ============================================
+                SAVE PAGE TO BUSINESS
+                ============================================
+                */
+
+                await MasterControlAPI
+                    .assignMetaPage(
+                        business.id,
+                        pageId,
+                        pageName
+                    );
+
+
+                status.textContent =
+                    "SUBSCRIBING PAGE TO WEBHOOK...";
+
+
+                /*
+                ============================================
+                SUBSCRIBE PAGE TO META WEBHOOK
+                ============================================
+                */
+
+                await MasterControlAPI
+                    .subscribeMetaPage(
+                        business.id,
+                        pageId
+                    );
+
+
+                status.textContent =
+                    "FACEBOOK PAGE CONNECTED";
+
+
+                sessionStorage
+                    .removeItem(
+                        "masterControlMetaConnection"
+                    );
+
+
+                await loadBusinesses();
+
+
+                window.setTimeout(
+                    () => {
+
+                        MasterModal.close();
+
+                        cleanMetaUrl();
+
+                    },
+                    800
+                );
+
+            }
+            catch (error) {
+
+                console.error(
+                    "Meta Page connection error:",
+                    error
+                );
+
+
+                status.textContent =
+                    `SYSTEM ERROR // ${
+                        error.message ||
+                        "UNABLE TO CONNECT PAGE"
+                    }`;
+
+
+                saveButton.disabled =
+                    false;
+
+
+                saveButton.textContent =
+                    "Connect Page";
+
+            }
+
+        }
+    );
+
+}
+
+
+/*
+====================================================
+CLEAN META RETURN URL
+====================================================
+*/
+
+function cleanMetaUrl() {
+
+    window.history
+        .replaceState(
+            {},
+            document.title,
+            "/businesses"
+        );
+
+}
+
+
+/*
+====================================================
+OPEN BUSINESS MODAL
 ====================================================
 */
 
@@ -1115,13 +1897,14 @@ function openBusinessModal(
 
 /*
 ====================================================
-Add Business
+ADD BUSINESS
 ====================================================
 */
 
 function openAddBusinessModal() {
 
     resetBusinessForm();
+
 
     openBusinessModal(
         "Add Business"
@@ -1132,17 +1915,23 @@ function openAddBusinessModal() {
 
 /*
 ====================================================
-Edit Business
+EDIT BUSINESS
 ====================================================
 */
 
-function editBusiness(id) {
+function editBusiness(
+    id
+) {
 
     const business =
         businesses.find(
             (item) =>
-                Number(item.id) ===
-                Number(id)
+                Number(
+                    item.id
+                ) ===
+                Number(
+                    id
+                )
         );
 
 
@@ -1163,15 +1952,18 @@ function editBusiness(id) {
 
 
     businessNameInput.value =
-        business.name || "";
+        business.name ||
+        "";
 
 
     businessEmojiInput.value =
-        business.emoji || "";
+        business.emoji ||
+        "";
 
 
     businessPromptInput.value =
-        business.prompt || "";
+        business.prompt ||
+        "";
 
 
     formStatus.textContent =
@@ -1187,7 +1979,7 @@ function editBusiness(id) {
 
 /*
 ====================================================
-Reset Form
+RESET FORM
 ====================================================
 */
 
@@ -1213,7 +2005,7 @@ function resetBusinessForm() {
 
 /*
 ====================================================
-Close Business Modal
+CLOSE BUSINESS MODAL
 ====================================================
 */
 
@@ -1236,7 +2028,7 @@ function closeBusinessModal() {
 
 /*
 ====================================================
-Save Business
+SAVE BUSINESS
 ====================================================
 */
 
@@ -1250,7 +2042,8 @@ businessForm.addEventListener(
         const businessId =
             Number(
                 businessIdInput.value
-            ) || null;
+            ) ||
+            null;
 
 
         const payload = {
@@ -1272,12 +2065,6 @@ businessForm.addEventListener(
 
         };
 
-
-        /*
-        ================================================
-        Validation
-        ================================================
-        */
 
         if (
             !payload.name
@@ -1313,12 +2100,6 @@ businessForm.addEventListener(
         }
 
 
-        /*
-        ================================================
-        Saving State
-        ================================================
-        */
-
         setFormState(
             true
         );
@@ -1332,12 +2113,6 @@ businessForm.addEventListener(
 
         try {
 
-            /*
-            ============================================
-            Update Existing Business
-            ============================================
-            */
-
             if (
                 businessId
             ) {
@@ -1349,14 +2124,6 @@ businessForm.addEventListener(
                     );
 
             }
-
-
-            /*
-            ============================================
-            Create New Business
-            ============================================
-            */
-
             else {
 
                 await MasterControlAPI
@@ -1370,11 +2137,6 @@ businessForm.addEventListener(
             formStatus.textContent =
                 "BUSINESS PROFILE SAVED";
 
-
-            /*
-             * Reloading also retrieves the social
-             * accounts for the business cards.
-             */
 
             await loadBusinesses();
 
@@ -1418,17 +2180,23 @@ businessForm.addEventListener(
 
 /*
 ====================================================
-Delete Business
+DELETE BUSINESS
 ====================================================
 */
 
-async function deleteBusiness(id) {
+async function deleteBusiness(
+    id
+) {
 
     const business =
         businesses.find(
             (item) =>
-                Number(item.id) ===
-                Number(id)
+                Number(
+                    item.id
+                ) ===
+                Number(
+                    id
+                )
         );
 
 
@@ -1458,11 +2226,9 @@ async function deleteBusiness(id) {
                 Are you sure you want to delete
 
                 <strong>
-
                     ${escapeHtml(
                         business.name
                     )}
-
                 </strong>?
 
             </p>
@@ -1491,12 +2257,6 @@ async function deleteBusiness(id) {
         "mc-delete-actions";
 
 
-    /*
-    ====================================================
-    Cancel Button
-    ====================================================
-    */
-
     const cancelButton =
         document.createElement(
             "button"
@@ -1514,12 +2274,6 @@ async function deleteBusiness(id) {
     cancelButton.textContent =
         "Cancel";
 
-
-    /*
-    ====================================================
-    Delete Button
-    ====================================================
-    */
 
     const deleteButton =
         document.createElement(
@@ -1539,12 +2293,6 @@ async function deleteBusiness(id) {
         "Delete Business";
 
 
-    /*
-    ====================================================
-    Cancel Delete
-    ====================================================
-    */
-
     cancelButton.addEventListener(
         "click",
         () => {
@@ -1554,12 +2302,6 @@ async function deleteBusiness(id) {
         }
     );
 
-
-    /*
-    ====================================================
-    Confirm Delete
-    ====================================================
-    */
 
     deleteButton.addEventListener(
         "click",
@@ -1583,11 +2325,6 @@ async function deleteBusiness(id) {
 
                 MasterModal.close();
 
-
-                /*
-                 * Reload businesses and social
-                 * accounts after deletion.
-                 */
 
                 await loadBusinesses();
 
@@ -1646,7 +2383,7 @@ async function deleteBusiness(id) {
 
 /*
 ====================================================
-Button Events
+BUTTON EVENTS
 ====================================================
 */
 
@@ -1670,7 +2407,7 @@ refreshBusinessesButton.addEventListener(
 
 /*
 ====================================================
-Refresh Button State
+REFRESH BUTTON STATE
 ====================================================
 */
 
@@ -1692,7 +2429,7 @@ function setRefreshState(
 
 /*
 ====================================================
-Save Button State
+SAVE BUTTON STATE
 ====================================================
 */
 
@@ -1714,7 +2451,7 @@ function setFormState(
 
 /*
 ====================================================
-Prompt Preview
+PROMPT PREVIEW
 ====================================================
 */
 
@@ -1737,13 +2474,16 @@ function getPromptPreview(
         !cleaned
     ) {
 
-        return "No AI personality prompt has been added.";
+        return (
+            "No AI personality prompt has been added."
+        );
 
     }
 
 
     if (
-        cleaned.length <= 180
+        cleaned.length <=
+        180
     ) {
 
         return cleaned;
@@ -1761,7 +2501,7 @@ function getPromptPreview(
 
 /*
 ====================================================
-Escape HTML
+ESCAPE HTML
 ====================================================
 */
 
@@ -1798,14 +2538,27 @@ function escapeHtml(
 
 /*
 ====================================================
-Start Business Manager
+START BUSINESS MANAGER
 ====================================================
 */
 
-if (
-    validatePageElements()
-) {
+async function startBusinessManager() {
 
-    loadBusinesses();
+    if (
+        !validatePageElements()
+    ) {
+
+        return;
+
+    }
+
+
+    await loadBusinesses();
+
+
+    await handleMetaReturn();
 
 }
+
+
+startBusinessManager();

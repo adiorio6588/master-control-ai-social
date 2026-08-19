@@ -157,7 +157,7 @@ app.get(
 
 /*
 ====================================================
-AUTH ROUTES
+PUBLIC AUTH ROUTES
 ====================================================
 */
 
@@ -482,6 +482,29 @@ app.get(
 
 /*
 ====================================================
+SETTINGS
+====================================================
+*/
+
+app.get(
+    "/settings",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "pages",
+                "settings.html"
+            )
+        );
+
+    }
+);
+
+
+/*
+====================================================
 UNKNOWN API ROUTE
 ====================================================
 */
@@ -613,19 +636,11 @@ app.listen(
         );
 
         console.log(
+            ` Settings: http://localhost:${PORT}/settings`
+        );
+
+        console.log(
             ` API Status: http://localhost:${PORT}/api/status`
-        );
-
-        console.log(
-            ` Register API: POST http://localhost:${PORT}/api/auth/register`
-        );
-
-        console.log(
-            ` Login API: POST http://localhost:${PORT}/api/auth/login`
-        );
-
-        console.log(
-            ` Account API: GET http://localhost:${PORT}/api/auth/me`
         );
 
         console.log(

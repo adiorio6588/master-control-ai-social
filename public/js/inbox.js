@@ -30,46 +30,155 @@ async function loadComments() {
     setRefreshState(true);
 
     try {
+
+        /*
+        ====================================================
+        AUTO-SYNC CONNECTED FACEBOOK PAGES
+        ====================================================
+        */
+
+        try {
+
+            const accounts =
+                await MasterControlAPI
+                    .getSocialAccounts();
+
+
+            const connectedFacebookAccounts =
+                Array.isArray(accounts)
+                    ? accounts.filter(
+                        (account) =>
+                            account.platform ===
+                                "facebook"
+                            &&
+                            Number(
+                                account.connected
+                            ) === 1
+                            &&
+                            String(
+                                account.external_account_id ||
+                                ""
+                            ).trim()
+                    )
+                    : [];
+
+
+            for (
+                const account of
+                connectedFacebookAccounts
+            ) {
+
+                try {
+
+                    await MasterControlAPI
+                        .syncMetaComments(
+                            String(
+                                account.external_account_id
+                            )
+                        );
+
+                }
+                catch (syncError) {
+
+                    console.error(
+                        `Facebook sync failed for ${
+                            account.account_name ||
+                            account.external_account_id
+                        }:`,
+                        syncError
+                    );
+
+                }
+
+            }
+
+        }
+        catch (accountError) {
+
+            console.error(
+                "Unable to load connected social accounts for sync:",
+                accountError
+            );
+
+        }
+
+
+        /*
+        ====================================================
+        LOAD MASTER CONTROL COMMENTS
+        ====================================================
+        */
+
         comments =
-            await MasterControlAPI.getComments();
+            await MasterControlAPI
+                .getComments();
+
 
         comments =
             Array.isArray(comments)
                 ? comments
                 : [];
 
+
         updateStatusCounts();
+
         renderComments();
 
-        if (selectedCommentId) {
+
+        if (
+            selectedCommentId
+        ) {
+
             const selectedComment =
                 comments.find(
                     (comment) =>
-                        Number(comment.id) ===
-                        Number(selectedCommentId)
+                        Number(
+                            comment.id
+                        ) ===
+                        Number(
+                            selectedCommentId
+                        )
                 );
 
-            if (selectedComment) {
+
+            if (
+                selectedComment
+            ) {
+
                 renderCommentDetails(
                     selectedComment
                 );
-            } else {
-                selectedCommentId = null;
-                renderEmptyDetails();
+
             }
-        } else {
-            renderEmptyDetails();
+            else {
+
+                selectedCommentId =
+                    null;
+
+                renderEmptyDetails();
+
+            }
+
         }
+        else {
+
+            renderEmptyDetails();
+
+        }
+
     }
     catch (error) {
+
         console.error(
             "Inbox loading error:",
             error
         );
 
+
         if (!commentsPanel) {
             return;
         }
+
 
         commentsPanel.innerHTML = `
             <div class="panel-header">
@@ -95,17 +204,23 @@ async function loadComments() {
                 </h3>
 
                 <p>
-                    ${escapeHtml(error.message)}
+                    ${escapeHtml(
+                        error.message
+                    )}
                 </p>
 
             </div>
         `;
+
     }
     finally {
-        setRefreshState(false);
+
+        setRefreshState(
+            false
+        );
+
     }
 }
-
 
 /*
 ====================================================

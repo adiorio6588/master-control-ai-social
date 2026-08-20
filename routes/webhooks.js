@@ -2,6 +2,10 @@ const express =
     require("express");
 
 
+const database =
+    require("../database/database");
+
+
 const router =
     express.Router();
 
@@ -17,19 +21,6 @@ META WEBHOOKS
 /*
 ====================================================
 GET /api/webhooks/meta
-====================================================
-
-Meta calls this endpoint when verifying the
-webhook configuration.
-
-Meta sends:
-
-hub.mode
-hub.verify_token
-hub.challenge
-
-If the verify token matches our environment
-variable, return hub.challenge.
 ====================================================
 */
 
@@ -54,9 +45,7 @@ router.get(
                 .META_WEBHOOK_VERIFY_TOKEN;
 
 
-        if (
-            !verifyToken
-        ) {
+        if (!verifyToken) {
 
             console.error(
                 "META_WEBHOOK_VERIFY_TOKEN is not configured."
@@ -109,17 +98,23 @@ router.get(
 POST /api/webhooks/meta
 ====================================================
 
-Receives webhook events from Meta.
+Receives real-time Facebook Page feed events.
 
-For the first test we intentionally DO NOT
-write anything to the database.
+For new Facebook comments:
 
-We only log a sanitized description of incoming
-Page feed/comment events.
+Page ID
+    ↓
+Find connected Master Control business
+    ↓
+Check external_comment_id
+    ↓
+Insert only if new
+    ↓
+Comment appears in Social Inbox
 
-Once we confirm Meta delivery works, we'll map
-the Page ID to the correct Master Control
-business and save the comment.
+Facebook Page replies are ignored so Master
+Control does not import its own outgoing replies
+back into the Inbox.
 ====================================================
 */
 
@@ -135,7 +130,7 @@ router.post(
 
             /*
             ============================================
-            ACKNOWLEDGE ONLY META PAGE EVENTS
+            ONLY PROCESS PAGE EVENTS
             ============================================
             */
 
@@ -151,12 +146,6 @@ router.post(
             }
 
 
-            /*
-            ============================================
-            PROCESS ENTRIES
-            ============================================
-            */
-
             const entries =
                 Array.isArray(
                     body.entry
@@ -170,11 +159,66 @@ router.post(
             ) {
 
                 const pageId =
-                    entry.id
-                        ? String(
-                            entry.id
-                        )
-                        : "";
+                    String(
+                        entry.id ||
+                        ""
+                    ).trim();
+
+
+                if (!pageId) {
+
+                    continue;
+
+                }
+
+
+                /*
+                ========================================
+                FIND MASTER CONTROL BUSINESS
+                ========================================
+                */
+
+                const socialAccount =
+                    database
+                        .prepare(`
+                            SELECT
+                                social_accounts.id,
+                                social_accounts.business_id,
+                                social_accounts.account_name,
+                                social_accounts.external_account_id,
+                                social_accounts.connected,
+                                businesses.name AS business_name,
+                                businesses.organization_id
+
+                            FROM social_accounts
+
+                            INNER JOIN businesses
+
+                                ON businesses.id =
+                                    social_accounts.business_id
+
+                            WHERE
+                                social_accounts.platform = 'facebook'
+                                AND social_accounts.external_account_id = ?
+                                AND social_accounts.connected = 1
+                        `)
+                        .get(
+                            pageId
+                        );
+
+
+                if (!socialAccount) {
+
+                    console.log(
+                        "Meta webhook ignored — Page is not assigned:",
+                        {
+                            pageId
+                        }
+                    );
+
+                    continue;
+
+                }
 
 
                 const changes =
@@ -190,8 +234,10 @@ router.post(
                 ) {
 
                     const field =
-                        change.field ||
-                        "";
+                        String(
+                            change.field ||
+                            ""
+                        ).trim();
 
 
                     const value =
@@ -201,59 +247,257 @@ router.post(
 
                     /*
                     ====================================
-                    SANITIZED DEVELOPMENT LOG
-                    ====================================
-
-                    Do not log tokens or the complete
-                    raw webhook payload.
+                    ONLY FACEBOOK FEED COMMENTS
                     ====================================
                     */
 
+                    const item =
+                        String(
+                            value.item ||
+                            ""
+                        )
+                            .trim()
+                            .toLowerCase();
+
+
+                    const verb =
+                        String(
+                            value.verb ||
+                            ""
+                        )
+                            .trim()
+                            .toLowerCase();
+
+
+                    if (
+                        field !== "feed"
+                        ||
+                        item !== "comment"
+                        ||
+                        verb !== "add"
+                    ) {
+
+                        continue;
+
+                    }
+
+
+                    const externalCommentId =
+                        String(
+                            value.comment_id ||
+                            ""
+                        ).trim();
+
+
+                    const message =
+                        String(
+                            value.message ||
+                            ""
+                        ).trim();
+
+
+                    const senderId =
+                        String(
+                            value.sender_id ||
+                            ""
+                        ).trim();
+
+
+                    const senderName =
+                        String(
+                            value.sender_name ||
+                            "Facebook User"
+                        ).trim();
+
+
+                    /*
+                    ====================================
+                    IGNORE PAGE'S OWN REPLIES
+                    ====================================
+                    */
+
+                    if (
+                        senderId
+                        &&
+                        senderId === pageId
+                    ) {
+
+                        console.log(
+                            "Meta webhook ignored Page-authored reply:",
+                            {
+                                pageId,
+                                externalCommentId
+                            }
+                        );
+
+                        continue;
+
+                    }
+
+
+                    /*
+                    ====================================
+                    REQUIRE COMMENT ID + MESSAGE
+                    ====================================
+                    */
+
+                    if (
+                        !externalCommentId
+                        ||
+                        !message
+                    ) {
+
+                        console.log(
+                            "Meta webhook comment skipped:",
+                            {
+                                pageId,
+                                externalCommentId,
+                                hasMessage:
+                                    Boolean(message)
+                            }
+                        );
+
+                        continue;
+
+                    }
+
+
+                    /*
+                    ====================================
+                    DUPLICATE CHECK
+                    ====================================
+                    */
+
+                    const existing =
+                        database
+                            .prepare(`
+                                SELECT id
+
+                                FROM comments
+
+                                WHERE
+                                    platform = 'facebook'
+                                    AND external_comment_id = ?
+                            `)
+                            .get(
+                                externalCommentId
+                            );
+
+
+                    if (existing) {
+
+                        console.log(
+                            "Meta webhook duplicate skipped:",
+                            {
+                                externalCommentId
+                            }
+                        );
+
+                        continue;
+
+                    }
+
+
+                    /*
+                    ====================================
+                    CREATED TIME
+                    ====================================
+                    */
+
+                    let createdAt =
+                        new Date()
+                            .toISOString();
+
+
+                    if (
+                        value.created_time
+                    ) {
+
+                        const createdTimeNumber =
+                            Number(
+                                value.created_time
+                            );
+
+
+                        if (
+                            Number.isFinite(
+                                createdTimeNumber
+                            )
+                        ) {
+
+                            createdAt =
+                                new Date(
+                                    createdTimeNumber *
+                                    1000
+                                )
+                                    .toISOString();
+
+                        }
+
+                    }
+
+
+                    /*
+                    ====================================
+                    INSERT INTO SOCIAL INBOX
+                    ====================================
+                    */
+
+                    const result =
+                        database
+                            .prepare(`
+                                INSERT INTO comments (
+                                    business_id,
+                                    platform,
+                                    author,
+                                    content,
+                                    status,
+                                    created_at,
+                                    source,
+                                    external_comment_id
+                                )
+
+                                VALUES (
+                                    ?,
+                                    'facebook',
+                                    ?,
+                                    ?,
+                                    'pending',
+                                    ?,
+                                    'meta',
+                                    ?
+                                )
+                            `)
+                            .run(
+                                socialAccount.business_id,
+                                senderName,
+                                message,
+                                createdAt,
+                                externalCommentId
+                            );
+
+
                     console.log(
-                        "📨 Meta webhook event:",
+                        "✅ Facebook webhook comment added:",
                         {
+                            localCommentId:
+                                Number(
+                                    result.lastInsertRowid
+                                ),
+
+                            businessId:
+                                socialAccount.business_id,
+
+                            business:
+                                socialAccount.business_name,
+
                             pageId,
 
-                            field,
+                            externalCommentId,
 
-                            item:
-                                value.item ||
-                                null,
+                            senderName,
 
-                            verb:
-                                value.verb ||
-                                null,
-
-                            senderId:
-                                value.sender_id
-                                    ? String(
-                                        value.sender_id
-                                    )
-                                    : null,
-
-                            senderName:
-                                value.sender_name ||
-                                null,
-
-                            message:
-                                typeof value.message ===
-                                    "string"
-                                    ? value.message
-                                    : null,
-
-                            commentId:
-                                value.comment_id
-                                    ? String(
-                                        value.comment_id
-                                    )
-                                    : null,
-
-                            postId:
-                                value.post_id
-                                    ? String(
-                                        value.post_id
-                                    )
-                                    : null
+                            message
                         }
                     );
 
@@ -264,11 +508,7 @@ router.post(
 
             /*
             ============================================
-            ACKNOWLEDGE EVENT
-            ============================================
-
-            Respond quickly so Meta knows the webhook
-            was successfully received.
+            ACKNOWLEDGE META
             ============================================
             */
 
@@ -287,11 +527,6 @@ router.post(
             /*
             ============================================
             ACKNOWLEDGE DURING DEVELOPMENT
-            ============================================
-
-            We don't want Meta repeatedly retrying an
-            event while we're still building the
-            processing pipeline.
             ============================================
             */
 

@@ -690,6 +690,21 @@ window.MasterControlAPI = (() => {
 
     }
 
+    function syncMetaComments(
+        pageId
+    ) {
+    
+        return request(
+            `/api/meta/sync-comments/${encodeURIComponent(
+                pageId
+            )}`,
+            {
+                method:
+                    "POST"
+            }
+        );
+    
+    }
 
     /*
     ====================================================
@@ -736,6 +751,7 @@ window.MasterControlAPI = (() => {
         getMetaAssets,
         getMetaPageFeed,
         getMetaPageComments,
+        syncMetaComments,
         subscribeMetaPage,
         assignMetaPage
 

@@ -3560,6 +3560,428 @@ router.post(
 
 /*
 ====================================================
+POST /api/meta/sync-instagram-comments/:accountId
+====================================================
+*/
+
+router.post(
+    "/meta/sync-instagram-comments/:accountId",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(req.organizationId);
+
+            const accountId =
+                String(req.params.accountId || "").trim();
+
+
+            if (
+                !Number.isInteger(organizationId)
+                ||
+                organizationId <= 0
+            ) {
+                return res.status(401).json({
+                    error: "Authentication required."
+                });
+            }
+
+
+            /*
+            ============================================
+            FIND INSTAGRAM SOCIAL ACCOUNT
+            ============================================
+            */
+
+            const socialAccount =
+                database
+                    .prepare(`
+                        SELECT
+                            social_accounts.id,
+                            social_accounts.business_id,
+                            social_accounts.account_name,
+                            social_accounts.external_account_id,
+                            social_accounts.connected,
+                            businesses.name AS business_name
+
+                        FROM social_accounts
+
+                        INNER JOIN businesses
+                            ON businesses.id =
+                                social_accounts.business_id
+
+                        WHERE
+                            businesses.organization_id = ?
+                            AND social_accounts.platform = 'instagram'
+                            AND social_accounts.external_account_id = ?
+                    `)
+                    .get(
+                        organizationId,
+                        accountId
+                    );
+
+
+            if (!socialAccount) {
+                return res.status(404).json({
+                    error:
+                        "Instagram account is not assigned to this organization."
+                });
+            }
+
+
+            if (Number(socialAccount.connected) !== 1) {
+                return res.status(400).json({
+                    error:
+                        "Instagram account is not connected."
+                });
+            }
+
+
+            /*
+            ============================================
+            LOAD INSTAGRAM TOKEN
+            ============================================
+            */
+
+            const connection =
+                database
+                    .prepare(`
+                        SELECT
+                            access_token_encrypted,
+                            token_expires_at
+
+                        FROM social_oauth_connections
+
+                        WHERE
+                            organization_id = ?
+                            AND provider = 'instagram'
+                    `)
+                    .get(organizationId);
+
+
+            if (
+                !connection
+                ||
+                !connection.access_token_encrypted
+            ) {
+                return res.status(404).json({
+                    error:
+                        "Instagram is not connected."
+                });
+            }
+
+
+            const accessToken =
+                decryptToken(
+                    connection.access_token_encrypted
+                );
+
+
+            if (!accessToken) {
+                return res.status(500).json({
+                    error:
+                        "Unable to decrypt Instagram connection."
+                });
+            }
+
+
+            /*
+            ============================================
+            FETCH INSTAGRAM MEDIA + COMMENTS
+            ============================================
+            */
+
+            const mediaUrl =
+                new URL(
+                    "https://graph.instagram.com/me/media"
+                );
+
+
+            mediaUrl.searchParams.set(
+                "fields",
+                [
+                    "id",
+                    "caption",
+                    "comments.limit(50){id,text,timestamp,username}"
+                ].join(",")
+            );
+
+
+            mediaUrl.searchParams.set(
+                "limit",
+                "25"
+            );
+
+
+            mediaUrl.searchParams.set(
+                "access_token",
+                accessToken
+            );
+
+
+            const mediaResponse =
+                await fetch(mediaUrl, {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json"
+                    }
+                });
+
+
+            const mediaData =
+                await mediaResponse.json();
+
+
+            if (!mediaResponse.ok) {
+
+                console.error(
+                    "Instagram comment sync lookup failed:",
+                    mediaData
+                );
+
+                return res.status(502).json({
+                    error:
+                        "Unable to load Instagram comments.",
+
+                    meta:
+                        mediaData
+                            ?.error
+                            ?.message ||
+                        "Unknown Instagram error."
+                });
+            }
+
+
+            /*
+            ============================================
+            DATABASE STATEMENTS
+            ============================================
+            */
+
+            const findExisting =
+                database.prepare(`
+                    SELECT id
+
+                    FROM comments
+
+                    WHERE
+                        platform = 'instagram'
+                        AND external_comment_id = ?
+                `);
+
+
+            const insertComment =
+                database.prepare(`
+                    INSERT INTO comments (
+                        business_id,
+                        platform,
+                        author,
+                        content,
+                        status,
+                        created_at,
+                        source,
+                        external_comment_id
+                    )
+
+                    VALUES (
+                        ?,
+                        'instagram',
+                        ?,
+                        ?,
+                        'pending',
+                        ?,
+                        'meta',
+                        ?
+                    )
+                `);
+
+
+            const media =
+                Array.isArray(mediaData.data)
+                    ? mediaData.data
+                    : [];
+
+
+            let discovered = 0;
+            let inserted = 0;
+            let duplicates = 0;
+            let skipped = 0;
+
+            const insertedComments = [];
+
+
+            const syncTransaction =
+                database.transaction(() => {
+
+                    for (const post of media) {
+
+                        const comments =
+                            Array.isArray(
+                                post?.comments?.data
+                            )
+                                ? post.comments.data
+                                : [];
+
+
+                        for (const comment of comments) {
+
+                            discovered++;
+
+
+                            const externalCommentId =
+                                String(
+                                    comment.id || ""
+                                ).trim();
+
+
+                            const content =
+                                String(
+                                    comment.text || ""
+                                ).trim();
+
+
+                            if (
+                                !externalCommentId
+                                ||
+                                !content
+                            ) {
+                                skipped++;
+                                continue;
+                            }
+
+
+                            const existing =
+                                findExisting.get(
+                                    externalCommentId
+                                );
+
+
+                            if (existing) {
+                                duplicates++;
+                                continue;
+                            }
+
+
+                            const author =
+                                String(
+                                    comment.username ||
+                                    "Instagram User"
+                                ).trim();
+
+
+                            const createdAt =
+                                comment.timestamp
+                                    ? new Date(
+                                        comment.timestamp
+                                    ).toISOString()
+                                    : new Date()
+                                        .toISOString();
+
+
+                            const result =
+                                insertComment.run(
+                                    socialAccount.business_id,
+                                    author,
+                                    content,
+                                    createdAt,
+                                    externalCommentId
+                                );
+
+
+                            inserted++;
+
+
+                            insertedComments.push({
+                                id:
+                                    Number(
+                                        result.lastInsertRowid
+                                    ),
+
+                                externalCommentId,
+                                author,
+                                content,
+                                createdAt
+                            });
+
+                        }
+
+                    }
+
+                });
+
+
+            syncTransaction();
+
+
+            console.log(
+                "✅ Instagram comments synced:",
+                {
+                    organizationId,
+                    businessId:
+                        socialAccount.business_id,
+                    accountId,
+                    discovered,
+                    inserted,
+                    duplicates,
+                    skipped
+                }
+            );
+
+
+            return res.json({
+                success: true,
+
+                businessId:
+                    socialAccount.business_id,
+
+                business:
+                    socialAccount.business_name,
+
+                platform:
+                    "instagram",
+
+                account: {
+                    id: accountId,
+                    name:
+                        socialAccount.account_name || ""
+                },
+
+                mediaChecked:
+                    media.length,
+
+                discovered,
+                inserted,
+                duplicates,
+                skipped,
+                insertedComments
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Instagram comment sync error:",
+                error
+            );
+
+
+            return res.status(500).json({
+                error:
+                    "Unable to sync Instagram comments.",
+
+                details:
+                    error.message
+            });
+
+        }
+
+    }
+);
+
+/*
+====================================================
 GET /api/meta/permissions
 ====================================================
 */
@@ -3755,6 +4177,193 @@ router.get(
     }
 );
 
+/*
+====================================================
+POST /api/meta/instagram-token
+====================================================
+*/
+
+router.post(
+    "/meta/instagram-token",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(
+                    req.organizationId
+                );
+
+
+            const accessToken =
+                String(
+                    req.body?.accessToken ||
+                    ""
+                ).trim();
+
+
+            const instagramAccountId =
+                String(
+                    req.body?.instagramAccountId ||
+                    ""
+                ).trim();
+
+
+            const username =
+                String(
+                    req.body?.username ||
+                    ""
+                ).trim();
+
+
+            if (
+                !Number.isInteger(
+                    organizationId
+                )
+                ||
+                organizationId <= 0
+            ) {
+
+                return res
+                    .status(401)
+                    .json({
+                        error:
+                            "Authentication required."
+                    });
+
+            }
+
+
+            if (!accessToken) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Instagram access token is required."
+                    });
+
+            }
+
+
+            if (!instagramAccountId) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Instagram account ID is required."
+                    });
+
+            }
+
+
+            const encryptedAccessToken =
+                encryptToken(
+                    accessToken
+                );
+
+
+            database
+                .prepare(`
+                    INSERT INTO social_oauth_connections (
+                        organization_id,
+                        provider,
+                        provider_user_id,
+                        provider_user_name,
+                        access_token_encrypted,
+                        refresh_token_encrypted,
+                        token_expires_at,
+                        scopes,
+                        created_at,
+                        updated_at
+                    )
+
+                    VALUES (
+                        ?,
+                        'instagram',
+                        ?,
+                        ?,
+                        ?,
+                        '',
+                        NULL,
+                        '',
+                        CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP
+                    )
+
+                    ON CONFLICT (
+                        organization_id,
+                        provider
+                    )
+
+                    DO UPDATE SET
+                        provider_user_id =
+                            excluded.provider_user_id,
+
+                        provider_user_name =
+                            excluded.provider_user_name,
+
+                        access_token_encrypted =
+                            excluded.access_token_encrypted,
+
+                        updated_at =
+                            CURRENT_TIMESTAMP
+                `)
+                .run(
+                    organizationId,
+                    instagramAccountId,
+                    username,
+                    encryptedAccessToken
+                );
+
+
+            console.log(
+                "✅ Instagram OAuth connection saved:",
+                {
+                    organizationId,
+                    instagramAccountId,
+                    username
+                }
+            );
+
+
+            return res.json({
+                success:
+                    true,
+
+                provider:
+                    "instagram",
+
+                instagramAccountId,
+
+                username
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Instagram token save error:",
+                error
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "Unable to save Instagram connection.",
+
+                    details:
+                        error.message
+                });
+
+        }
+
+    }
+);
 
 /*
 ====================================================

@@ -127,6 +127,20 @@ router.post(
             const body =
                 req.body;
 
+                console.log(
+                    "📨 Incoming Meta webhook:",
+                    {
+                        object:
+                            body?.object || null,
+                
+                        entries:
+                            Array.isArray(
+                                body?.entry
+                            )
+                                ? body.entry.length
+                                : 0
+                    }
+                );
 
             /*
             ============================================
@@ -134,16 +148,336 @@ router.post(
             ============================================
             */
 
-            if (
-                !body
-                ||
-                body.object !== "page"
+           if (!body) {
+
+            return res
+                .sendStatus(404);
+        
+        }
+        
+        
+        /*
+        ====================================================
+        INSTAGRAM COMMENT EVENTS
+        ====================================================
+        */
+        
+        if (
+            body.object === "instagram"
+        ) {
+        
+            const entries =
+                Array.isArray(
+                    body.entry
+                )
+                    ? body.entry
+                    : [];
+        
+        
+            for (
+                const entry of entries
             ) {
-
-                return res
-                    .sendStatus(404);
-
+        
+                const instagramAccountId =
+                    String(
+                        entry.id ||
+                        ""
+                    ).trim();
+        
+        
+                if (!instagramAccountId) {
+                    continue;
+                }
+        
+        
+                const changes =
+                    Array.isArray(
+                        entry.changes
+                    )
+                        ? entry.changes
+                        : [];
+        
+        
+                for (
+                    const change of changes
+                ) {
+        
+                    const field =
+                        String(
+                            change.field ||
+                            ""
+                        )
+                            .trim()
+                            .toLowerCase();
+        
+        
+                    if (
+                        field !== "comments"
+                    ) {
+        
+                        continue;
+        
+                    }
+        
+        
+                    const value =
+                        change.value ||
+                        {};
+        
+        
+                    const externalCommentId =
+                        String(
+                            value.id ||
+                            ""
+                        ).trim();
+        
+        
+                    const message =
+                        String(
+                            value.text ||
+                            ""
+                        ).trim();
+        
+        
+                    const senderName =
+                        String(
+                            value
+                                ?.from
+                                ?.username ||
+                            "Instagram User"
+                        ).trim();
+        
+        
+                    const senderId =
+                        String(
+                            value
+                                ?.from
+                                ?.id ||
+                            ""
+                        ).trim();
+        
+        
+                    /*
+                    ============================================
+                    FIND CONNECTED INSTAGRAM BUSINESS
+                    ============================================
+                    */
+        
+                    const socialAccount =
+                        database
+                            .prepare(`
+                                SELECT
+                                    social_accounts.id,
+                                    social_accounts.business_id,
+                                    social_accounts.account_name,
+                                    social_accounts.external_account_id,
+                                    social_accounts.connected,
+                                    businesses.name AS business_name,
+                                    businesses.organization_id
+        
+                                FROM social_accounts
+        
+                                INNER JOIN businesses
+        
+                                    ON businesses.id =
+                                        social_accounts.business_id
+        
+                                WHERE
+                                    social_accounts.platform = 'instagram'
+                                    AND social_accounts.external_account_id = ?
+                                    AND social_accounts.connected = 1
+                            `)
+                            .get(
+                                instagramAccountId
+                            );
+        
+        
+                    if (!socialAccount) {
+        
+                        console.log(
+                            "Instagram webhook ignored — account is not assigned:",
+                            {
+                                instagramAccountId,
+                                externalCommentId
+                            }
+                        );
+        
+                        continue;
+        
+                    }
+        
+        
+                    /*
+                    ============================================
+                    IGNORE OWN INSTAGRAM COMMENTS
+                    ============================================
+                    */
+        
+                    if (
+                        senderId
+                        &&
+                        senderId ===
+                            instagramAccountId
+                    ) {
+        
+                        console.log(
+                            "Instagram webhook ignored self-comment:",
+                            {
+                                instagramAccountId,
+                                externalCommentId
+                            }
+                        );
+        
+                        continue;
+        
+                    }
+        
+        
+                    if (
+                        !externalCommentId
+                        ||
+                        !message
+                    ) {
+        
+                        console.log(
+                            "Instagram webhook comment skipped:",
+                            {
+                                instagramAccountId,
+                                externalCommentId,
+                                hasMessage:
+                                    Boolean(message)
+                            }
+                        );
+        
+                        continue;
+        
+                    }
+        
+        
+                    /*
+                    ============================================
+                    DUPLICATE CHECK
+                    ============================================
+                    */
+        
+                    const existing =
+                        database
+                            .prepare(`
+                                SELECT id
+        
+                                FROM comments
+        
+                                WHERE
+                                    platform = 'instagram'
+                                    AND external_comment_id = ?
+                            `)
+                            .get(
+                                externalCommentId
+                            );
+        
+        
+                    if (existing) {
+        
+                        console.log(
+                            "Instagram webhook duplicate skipped:",
+                            {
+                                externalCommentId
+                            }
+                        );
+        
+                        continue;
+        
+                    }
+        
+        
+                    /*
+                    ============================================
+                    INSERT INTO SOCIAL INBOX
+                    ============================================
+                    */
+        
+                    const result =
+                        database
+                            .prepare(`
+                                INSERT INTO comments (
+                                    business_id,
+                                    platform,
+                                    author,
+                                    content,
+                                    status,
+                                    created_at,
+                                    source,
+                                    external_comment_id
+                                )
+        
+                                VALUES (
+                                    ?,
+                                    'instagram',
+                                    ?,
+                                    ?,
+                                    'pending',
+                                    CURRENT_TIMESTAMP,
+                                    'meta',
+                                    ?
+                                )
+                            `)
+                            .run(
+                                socialAccount.business_id,
+                                senderName,
+                                message,
+                                externalCommentId
+                            );
+        
+        
+                    console.log(
+                        "✅ Instagram webhook comment added:",
+                        {
+                            localCommentId:
+                                Number(
+                                    result.lastInsertRowid
+                                ),
+        
+                            businessId:
+                                socialAccount.business_id,
+        
+                            business:
+                                socialAccount.business_name,
+        
+                            instagramAccountId,
+        
+                            externalCommentId,
+        
+                            senderName,
+        
+                            message
+                        }
+                    );
+        
+                }
+        
             }
+        
+        
+            return res
+                .sendStatus(200);
+        
+        }
+        
+        
+        /*
+        ====================================================
+        ONLY PROCESS FACEBOOK PAGE EVENTS
+        ====================================================
+        */
+        
+        if (
+            body.object !== "page"
+        ) {
+        
+            return res
+                .sendStatus(404);
+        
+        }
 
 
             const entries =

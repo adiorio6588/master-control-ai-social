@@ -1312,14 +1312,8 @@ router.post(
 POST /api/comments/:id/post
 ====================================================
 
-Publishes an approved saved reply to Facebook.
-
-This route:
-1. Loads the local comment + reply.
-2. Verifies it is a Meta Facebook comment.
-3. Gets the Facebook Page access token.
-4. Posts the saved reply to the real comment.
-5. Marks the local reply as posted.
+Publishes an approved saved reply to Facebook
+or Instagram.
 ====================================================
 */
 
@@ -1341,6 +1335,12 @@ router.post(
                 );
 
 
+            /*
+            ============================================
+            VALIDATE COMMENT ID
+            ============================================
+            */
+
             if (
                 !Number.isInteger(
                     commentId
@@ -1358,6 +1358,12 @@ router.post(
 
             }
 
+
+            /*
+            ============================================
+            LOAD COMMENT + REPLY
+            ============================================
+            */
 
             const comment =
                 getCommentById(
@@ -1431,35 +1437,372 @@ router.post(
             }
 
 
-            const isFacebookMetaComment =
-                comment.platform ===
-                    "facebook"
-            &&
+            /*
+            ============================================
+            REQUIRE REAL SOCIAL COMMENT ID
+            ============================================
+            */
+
+            const externalCommentId =
                 typeof comment
                     .external_comment_id ===
                     "string"
-            &&
-                comment
-                    .external_comment_id
-                    .trim()
-                    .length > 0;
 
-            if (!isFacebookMetaComment) {
+                    ? comment
+                        .external_comment_id
+                        .trim()
+
+                    : "";
+
+
+            if (!externalCommentId) {
 
                 return res
                     .status(400)
                     .json({
                         error:
-                            "This comment is not a connected Facebook comment."
+                            "This comment is not connected to a social platform comment."
                     });
 
             }
 
 
-            const externalCommentId =
-                comment
-                    .external_comment_id
-                    .trim();
+            /*
+            ====================================================
+            INSTAGRAM
+            ====================================================
+            */
+
+            if (
+                comment.platform ===
+                    "instagram"
+            ) {
+
+                /*
+                ================================================
+                VERIFY INSTAGRAM SOCIAL ACCOUNT
+                ================================================
+                */
+
+                const socialAccount =
+                    database
+                        .prepare(`
+                            SELECT
+                                social_accounts.id,
+                                social_accounts.business_id,
+                                social_accounts.account_name,
+                                social_accounts.external_account_id,
+                                social_accounts.connected
+
+                            FROM social_accounts
+
+                            INNER JOIN businesses
+
+                                ON businesses.id =
+                                    social_accounts.business_id
+
+                            WHERE
+                                social_accounts.business_id = ?
+                                AND social_accounts.platform = 'instagram'
+                                AND businesses.organization_id = ?
+                        `)
+                        .get(
+                            comment.business_id,
+                            organizationId
+                        );
+
+
+                if (
+                    !socialAccount
+                    ||
+                    Number(
+                        socialAccount.connected
+                    ) !== 1
+                ) {
+
+                    return res
+                        .status(400)
+                        .json({
+                            error:
+                                "The Instagram account for this business is not connected."
+                        });
+
+                }
+
+
+                /*
+                ================================================
+                LOAD INSTAGRAM TOKEN
+                ================================================
+                */
+
+                const connection =
+                    database
+                        .prepare(`
+                            SELECT
+                                access_token_encrypted,
+                                token_expires_at
+
+                            FROM social_oauth_connections
+
+                            WHERE
+                                organization_id = ?
+                                AND provider = 'instagram'
+                        `)
+                        .get(
+                            organizationId
+                        );
+
+
+                if (
+                    !connection
+                    ||
+                    !connection
+                        .access_token_encrypted
+                ) {
+
+                    return res
+                        .status(404)
+                        .json({
+                            error:
+                                "Instagram is not connected."
+                        });
+
+                }
+
+
+                if (
+                    connection.token_expires_at
+                ) {
+
+                    const expiration =
+                        new Date(
+                            connection
+                                .token_expires_at
+                        );
+
+
+                    if (
+                        !Number.isNaN(
+                            expiration.getTime()
+                        )
+                        &&
+                        expiration.getTime() <=
+                            Date.now()
+                    ) {
+
+                        return res
+                            .status(401)
+                            .json({
+                                error:
+                                    "Instagram connection has expired. Please reconnect."
+                            });
+
+                    }
+
+                }
+
+
+                const instagramAccessToken =
+                    decryptToken(
+                        connection
+                            .access_token_encrypted
+                    );
+
+
+                if (!instagramAccessToken) {
+
+                    return res
+                        .status(500)
+                        .json({
+                            error:
+                                "Unable to decrypt Instagram connection."
+                        });
+
+                }
+
+
+                /*
+                ================================================
+                POST REPLY TO INSTAGRAM
+                ================================================
+                */
+
+                const replyUrl =
+                    new URL(
+                        `https://graph.instagram.com/v26.0/${encodeURIComponent(
+                            externalCommentId
+                        )}/replies`
+                    );
+
+
+                replyUrl.searchParams.set(
+                    "message",
+                    reply
+                );
+
+
+                replyUrl.searchParams.set(
+                    "access_token",
+                    instagramAccessToken
+                );
+
+
+                const instagramResponse =
+                    await fetch(
+                        replyUrl,
+                        {
+                            method:
+                                "POST",
+
+                            headers: {
+                                Accept:
+                                    "application/json"
+                            }
+                        }
+                    );
+
+
+                const instagramData =
+                    await instagramResponse
+                        .json();
+
+
+                if (
+                    !instagramResponse.ok
+                    ||
+                    !instagramData.id
+                ) {
+
+                    console.error(
+                        "Instagram reply post failed:",
+                        instagramData
+                    );
+
+
+                    return res
+                        .status(502)
+                        .json({
+                            error:
+                                "Instagram did not accept the reply.",
+
+                            meta:
+                                instagramData
+                                    ?.error
+                                    ?.message ||
+                                "Instagram did not return a reply ID."
+                        });
+
+                }
+
+
+                /*
+                ================================================
+                MARK LOCAL REPLY POSTED
+                ================================================
+                */
+
+                database.transaction(
+                    () => {
+
+                        database
+                            .prepare(`
+                                UPDATE comments
+
+                                SET
+                                    status = 'posted',
+
+                                    updated_at =
+                                        CURRENT_TIMESTAMP
+
+                                WHERE id = ?
+                            `)
+                            .run(
+                                commentId
+                            );
+
+
+                        if (
+                            comment.reply_id
+                        ) {
+
+                            database
+                                .prepare(`
+                                    UPDATE replies
+
+                                    SET
+                                        posted = 1,
+
+                                        approved = 1
+
+                                    WHERE id = ?
+                                `)
+                                .run(
+                                    comment.reply_id
+                                );
+
+                        }
+
+                    }
+                )();
+
+
+                console.log(
+                    "✅ Instagram approved reply posted:",
+                    {
+                        commentId,
+                        externalCommentId,
+                        instagramReplyId:
+                            instagramData.id
+                    }
+                );
+
+
+                return res.json({
+
+                    success:
+                        true,
+
+                    platform:
+                        "instagram",
+
+                    postedToInstagram:
+                        true,
+
+                    instagramReplyId:
+                        String(
+                            instagramData.id
+                        ),
+
+                    ...getCommentById(
+                        commentId,
+                        organizationId
+                    )
+
+                });
+
+            }
+
+
+            /*
+            ====================================================
+            FACEBOOK
+            ====================================================
+            */
+
+            if (
+                comment.platform !==
+                    "facebook"
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Unsupported social platform."
+                    });
+
+            }
 
 
             /*
@@ -1519,7 +1862,8 @@ router.post(
 
             const pageId =
                 String(
-                    socialAccount.external_account_id
+                    socialAccount
+                        .external_account_id
                 ).trim();
 
 
@@ -1570,7 +1914,8 @@ router.post(
 
                 const expiration =
                     new Date(
-                        connection.token_expires_at
+                        connection
+                            .token_expires_at
                     );
 
 
@@ -1616,7 +1961,7 @@ router.post(
 
             /*
             ============================================
-            GET PAGE ACCESS TOKEN
+            GET FACEBOOK PAGE TOKEN
             ============================================
             */
 
@@ -1626,20 +1971,16 @@ router.post(
                 );
 
 
-            accountsUrl
-                .searchParams
-                .set(
-                    "fields",
-                    "id,name,access_token"
-                );
+            accountsUrl.searchParams.set(
+                "fields",
+                "id,name,access_token"
+            );
 
 
-            accountsUrl
-                .searchParams
-                .set(
-                    "access_token",
-                    organizationAccessToken
-                );
+            accountsUrl.searchParams.set(
+                "access_token",
+                organizationAccessToken
+            );
 
 
             const accountsResponse =
@@ -1726,7 +2067,7 @@ router.post(
             ============================================
             */
 
-            const replyUrl =
+            const facebookReplyUrl =
                 new URL(
                     `https://graph.facebook.com/v26.0/${encodeURIComponent(
                         externalCommentId
@@ -1734,25 +2075,21 @@ router.post(
                 );
 
 
-            replyUrl
-                .searchParams
-                .set(
-                    "message",
-                    reply
-                );
+            facebookReplyUrl.searchParams.set(
+                "message",
+                reply
+            );
 
 
-            replyUrl
-                .searchParams
-                .set(
-                    "access_token",
-                    page.access_token
-                );
+            facebookReplyUrl.searchParams.set(
+                "access_token",
+                page.access_token
+            );
 
 
             const facebookResponse =
                 await fetch(
-                    replyUrl,
+                    facebookReplyUrl,
                     {
                         method:
                             "POST",
@@ -1800,7 +2137,7 @@ router.post(
 
             /*
             ============================================
-            MARK LOCAL REPLY AS POSTED
+            MARK LOCAL REPLY POSTED
             ============================================
             */
 
@@ -1813,6 +2150,7 @@ router.post(
 
                             SET
                                 status = 'posted',
+
                                 updated_at =
                                     CURRENT_TIMESTAMP
 
@@ -1823,19 +2161,26 @@ router.post(
                         );
 
 
-                    database
-                        .prepare(`
-                            UPDATE replies
+                    if (
+                        comment.reply_id
+                    ) {
 
-                            SET
-                                posted = 1,
-                                approved = 1
+                        database
+                            .prepare(`
+                                UPDATE replies
 
-                            WHERE id = ?
-                        `)
-                        .run(
-                            comment.reply_id
-                        );
+                                SET
+                                    posted = 1,
+
+                                    approved = 1
+
+                                WHERE id = ?
+                            `)
+                            .run(
+                                comment.reply_id
+                            );
+
+                    }
 
                 }
             )();
@@ -1856,6 +2201,9 @@ router.post(
 
                 success:
                     true,
+
+                platform:
+                    "facebook",
 
                 postedToFacebook:
                     true,

@@ -54,15 +54,13 @@ const modalBackdrop =
 
 let businesses = [];
 let rules = [];
+let allRules = [];
+
 
 async function loadBusinesses() {
-    const response = await fetch("/api/businesses");
 
-    if (!response.ok) {
-        throw new Error("Unable to load businesses.");
-    }
-
-    businesses = await response.json();
+    businesses =
+        await MasterControlAPI.getBusinesses();
 
     businessFilter.innerHTML = `
         <option value="">All businesses</option>
@@ -73,51 +71,76 @@ async function loadBusinesses() {
     `;
 
     businesses.forEach((business) => {
+
         const label =
             `${business.emoji || "🏢"} ${business.name}`;
 
         const filterOption =
             document.createElement("option");
 
-        filterOption.value = business.id;
-        filterOption.textContent = label;
+        filterOption.value =
+            business.id;
 
-        businessFilter.appendChild(filterOption);
+        filterOption.textContent =
+            label;
+
+        businessFilter.appendChild(
+            filterOption
+        );
+
 
         const formOption =
             document.createElement("option");
 
-        formOption.value = business.id;
-        formOption.textContent = label;
+        formOption.value =
+            business.id;
 
-        ruleBusiness.appendChild(formOption);
+        formOption.textContent =
+            label;
+
+        ruleBusiness.appendChild(
+            formOption
+        );
+
     });
+
 }
 
+
 async function loadRules() {
+
     rulesList.innerHTML = `
         <div class="empty-state">
             Loading automatic reply rules...
         </div>
     `;
 
-    const businessId = businessFilter.value;
-
-    const endpoint = businessId
-        ? `/api/rules?businessId=${encodeURIComponent(businessId)}`
-        : "/api/rules";
-
     try {
-        const response = await fetch(endpoint);
 
-        if (!response.ok) {
-            throw new Error("Unable to load reply rules.");
-        }
+        allRules =
+            await MasterControlAPI.getRules();
 
-        rules = await response.json();
+        const businessId =
+            Number(
+                businessFilter.value
+            );
+
+        rules =
+            businessId
+                ? allRules.filter(
+                    (rule) =>
+                        Number(
+                            rule.business_id
+                        ) ===
+                        businessId
+                )
+                : allRules;
 
         renderRules();
-    } catch (error) {
+
+    }
+    catch (error) {
+
         console.error(error);
 
         rulesList.innerHTML = `
@@ -125,18 +148,28 @@ async function loadRules() {
                 ${escapeHtml(error.message)}
             </div>
         `;
+
     }
+
 }
 
+
 function renderRules() {
+
     rulesList.innerHTML = "";
 
-    ruleCount.textContent = rules.length;
+    ruleCount.textContent =
+        rules.length;
 
     enabledCount.textContent =
-        rules.filter((rule) => rule.enabled).length;
+        rules.filter(
+            (rule) =>
+                rule.enabled
+        ).length;
+
 
     if (!rules.length) {
+
         rulesList.innerHTML = `
             <div class="empty-state">
                 No rules exist for this business yet.
@@ -144,16 +177,27 @@ function renderRules() {
         `;
 
         return;
+
     }
 
+
     rules.forEach((rule, index) => {
-        const card = document.createElement("article");
+
+        const card =
+            document.createElement(
+                "article"
+            );
 
         card.className =
-            `rule-card ${rule.enabled ? "" : "disabled-rule"}`;
+            `rule-card ${
+                rule.enabled
+                    ? ""
+                    : "disabled-rule"
+            }`;
 
         const number =
-            String(index + 1).padStart(2, "0");
+            String(index + 1)
+                .padStart(2, "0");
 
         card.innerHTML = `
             <div class="rule-header">
@@ -169,29 +213,45 @@ function renderRules() {
                         )}
                     </p>
 
-                    <h3>${escapeHtml(rule.name)}</h3>
+                    <h3>
+                        ${escapeHtml(rule.name)}
+                    </h3>
                 </div>
 
                 <span class="status-badge">
-                    ${rule.enabled ? "Enabled" : "Disabled"}
+                    ${rule.enabled
+                        ? "Enabled"
+                        : "Disabled"}
                 </span>
 
             </div>
 
             <div class="rule-section">
-                <span>Keywords</span>
+
+                <span>
+                    Keywords
+                </span>
 
                 <div class="keyword-list">
-                    ${renderKeywords(rule.keywords)}
+                    ${renderKeywords(
+                        rule.keywords
+                    )}
                 </div>
+
             </div>
 
             <div class="rule-section">
-                <span>Automatic Reply</span>
+
+                <span>
+                    Automatic Reply
+                </span>
 
                 <p class="reply-preview">
-                    ${escapeHtml(rule.reply)}
+                    ${escapeHtml(
+                        rule.reply
+                    )}
                 </p>
+
             </div>
 
             <div class="rule-actions">
@@ -207,7 +267,9 @@ function renderRules() {
                     class="action-button toggle-button"
                     data-rule-id="${rule.id}"
                 >
-                    ${rule.enabled ? "Disable" : "Enable"}
+                    ${rule.enabled
+                        ? "Disable"
+                        : "Enable"}
                 </button>
 
                 <button
@@ -220,16 +282,27 @@ function renderRules() {
             </div>
         `;
 
-        rulesList.appendChild(card);
+        rulesList.appendChild(
+            card
+        );
+
     });
 
     attachRuleEvents();
+
 }
 
-function renderKeywords(keywordString) {
-    return keywordString
+
+function renderKeywords(
+    keywordString = ""
+) {
+
+    return String(keywordString)
         .split(",")
-        .map((keyword) => keyword.trim())
+        .map(
+            (keyword) =>
+                keyword.trim()
+        )
         .filter(Boolean)
         .map(
             (keyword) => `
@@ -239,229 +312,452 @@ function renderKeywords(keywordString) {
             `
         )
         .join("");
+
 }
+
 
 function attachRuleEvents() {
-    document
-        .querySelectorAll(".edit-button")
-        .forEach((button) => {
-            button.addEventListener("click", () => {
-                openEditModal(Number(button.dataset.ruleId));
-            });
-        });
 
     document
-        .querySelectorAll(".toggle-button")
+        .querySelectorAll(
+            ".edit-button"
+        )
         .forEach((button) => {
-            button.addEventListener("click", async () => {
-                await toggleRule(Number(button.dataset.ruleId));
-            });
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    openEditModal(
+                        Number(
+                            button.dataset.ruleId
+                        )
+                    );
+
+                }
+            );
+
         });
 
+
     document
-        .querySelectorAll(".delete-button")
+        .querySelectorAll(
+            ".toggle-button"
+        )
         .forEach((button) => {
-            button.addEventListener("click", async () => {
-                await deleteRule(Number(button.dataset.ruleId));
-            });
+
+            button.addEventListener(
+                "click",
+                async () => {
+
+                    await toggleRule(
+                        Number(
+                            button.dataset.ruleId
+                        )
+                    );
+
+                }
+            );
+
         });
+
+
+    document
+        .querySelectorAll(
+            ".delete-button"
+        )
+        .forEach((button) => {
+
+            button.addEventListener(
+                "click",
+                async () => {
+
+                    await deleteRule(
+                        Number(
+                            button.dataset.ruleId
+                        )
+                    );
+
+                }
+            );
+
+        });
+
 }
 
+
 function openCreateModal() {
+
     ruleForm.reset();
 
     ruleIdInput.value = "";
-    modalTitle.textContent = "Create Rule";
-    ruleEnabledInput.checked = true;
+
+    modalTitle.textContent =
+        "Create Rule";
+
+    ruleEnabledInput.checked =
+        true;
 
     if (businessFilter.value) {
-        ruleBusiness.value = businessFilter.value;
+
+        ruleBusiness.value =
+            businessFilter.value;
+
     }
 
     openModal();
+
 }
 
-function openEditModal(ruleId) {
-    const rule = rules.find((item) => item.id === ruleId);
+
+function openEditModal(
+    ruleId
+) {
+
+    const rule =
+        allRules.find(
+            (item) =>
+                Number(item.id) ===
+                Number(ruleId)
+        );
 
     if (!rule) {
         return;
     }
 
-    ruleIdInput.value = rule.id;
-    ruleBusiness.value = rule.business_id;
-    ruleNameInput.value = rule.name;
-    ruleKeywordsInput.value = rule.keywords;
-    ruleReplyInput.value = rule.reply;
-    ruleEnabledInput.checked = Boolean(rule.enabled);
+    ruleIdInput.value =
+        rule.id;
 
-    modalTitle.textContent = "Edit Rule";
+    ruleBusiness.value =
+        rule.business_id;
+
+    ruleNameInput.value =
+        rule.name;
+
+    ruleKeywordsInput.value =
+        rule.keywords;
+
+    ruleReplyInput.value =
+        rule.reply;
+
+    ruleEnabledInput.checked =
+        Boolean(rule.enabled);
+
+    modalTitle.textContent =
+        "Edit Rule";
 
     openModal();
+
 }
+
 
 function openModal() {
-    modal.classList.remove("hidden");
-    document.body.classList.add("modal-open");
+
+    modal.classList.remove(
+        "hidden"
+    );
+
+    document.body.classList.add(
+        "modal-open"
+    );
+
 }
+
 
 function closeModal() {
-    modal.classList.add("hidden");
-    document.body.classList.remove("modal-open");
+
+    modal.classList.add(
+        "hidden"
+    );
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+
 }
 
-ruleForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
 
-    const ruleId = ruleIdInput.value;
+ruleForm.addEventListener(
+    "submit",
+    async (event) => {
 
-    const payload = {
-        businessId: Number(ruleBusiness.value),
-        name: ruleNameInput.value.trim(),
-        keywords: ruleKeywordsInput.value.trim(),
-        reply: ruleReplyInput.value.trim(),
-        enabled: ruleEnabledInput.checked
-    };
+        event.preventDefault();
 
-    const endpoint = ruleId
-        ? `/api/rules/${ruleId}`
-        : "/api/rules";
-
-    const method = ruleId ? "PUT" : "POST";
-
-    try {
-        const response = await fetch(endpoint, {
-            method,
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                result.error || "Unable to save rule."
+        const ruleId =
+            Number(
+                ruleIdInput.value
             );
+
+        const payload = {
+
+            businessId:
+                Number(
+                    ruleBusiness.value
+                ),
+
+            name:
+                ruleNameInput.value.trim(),
+
+            keywords:
+                ruleKeywordsInput.value.trim(),
+
+            reply:
+                ruleReplyInput.value.trim(),
+
+            enabled:
+                ruleEnabledInput.checked
+
+        };
+
+
+        try {
+
+            if (ruleId) {
+
+                await MasterControlAPI
+                    .updateRule(
+                        ruleId,
+                        payload
+                    );
+
+            }
+            else {
+
+                await MasterControlAPI
+                    .createRule(
+                        payload
+                    );
+
+            }
+
+
+            closeModal();
+
+            showMessage(
+                ruleId
+                    ? "Rule updated successfully."
+                    : "Rule created successfully.",
+                "success"
+            );
+
+            await loadRules();
+
+        }
+        catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
         }
 
-        closeModal();
+    }
+);
 
-        showMessage(
-            ruleId
-                ? "Rule updated successfully."
-                : "Rule created successfully.",
-            "success"
+
+async function toggleRule(
+    ruleId
+) {
+
+    const rule =
+        allRules.find(
+            (item) =>
+                Number(item.id) ===
+                Number(ruleId)
         );
 
-        await loadRules();
-    } catch (error) {
-        showMessage(error.message, "error");
+    if (!rule) {
+        return;
     }
-});
 
-async function toggleRule(ruleId) {
+
     try {
-        const response = await fetch(
-            `/api/rules/${ruleId}/toggle`,
+
+        await MasterControlAPI.updateRule(
+            ruleId,
             {
-                method: "PATCH"
+                businessId:
+                    Number(
+                        rule.business_id
+                    ),
+
+                name:
+                    rule.name,
+
+                keywords:
+                    rule.keywords,
+
+                reply:
+                    rule.reply,
+
+                enabled:
+                    !Boolean(
+                        rule.enabled
+                    )
             }
         );
 
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                result.error || "Unable to change rule status."
-            );
-        }
-
         showMessage(
-            result.enabled
-                ? "Rule enabled."
-                : "Rule disabled.",
+            rule.enabled
+                ? "Rule disabled."
+                : "Rule enabled.",
             "success"
         );
 
         await loadRules();
-    } catch (error) {
-        showMessage(error.message, "error");
+
     }
+    catch (error) {
+
+        showMessage(
+            error.message,
+            "error"
+        );
+
+    }
+
 }
 
-async function deleteRule(ruleId) {
-    const rule = rules.find((item) => item.id === ruleId);
 
-    const confirmed = window.confirm(
-        `Delete the rule "${rule?.name || ruleId}"?`
-    );
+async function deleteRule(
+    ruleId
+) {
+
+    const rule =
+        allRules.find(
+            (item) =>
+                Number(item.id) ===
+                Number(ruleId)
+        );
+
+    const confirmed =
+        window.confirm(
+            `Delete the rule "${
+                rule?.name ||
+                ruleId
+            }"?`
+        );
 
     if (!confirmed) {
         return;
     }
 
+
     try {
-        const response = await fetch(
-            `/api/rules/${ruleId}`,
-            {
-                method: "DELETE"
-            }
+
+        const result =
+            await MasterControlAPI
+                .deleteRule(
+                    ruleId
+                );
+
+        showMessage(
+            result.message ||
+                "Rule deleted.",
+            "success"
         );
 
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                result.error || "Unable to delete rule."
-            );
-        }
-
-        showMessage(result.message, "success");
-
         await loadRules();
-    } catch (error) {
-        showMessage(error.message, "error");
+
     }
+    catch (error) {
+
+        showMessage(
+            error.message,
+            "error"
+        );
+
+    }
+
 }
 
-function showMessage(message, type) {
-    messageBox.textContent = message;
-    messageBox.className = `message-box ${type}`;
 
-    window.setTimeout(() => {
-        messageBox.className = "message-box hidden";
-    }, 3500);
+function showMessage(
+    message,
+    type
+) {
+
+    messageBox.textContent =
+        message;
+
+    messageBox.className =
+        `message-box ${type}`;
+
+    setTimeout(
+        () => {
+
+            messageBox.className =
+                "message-box hidden";
+
+        },
+        3500
+    );
+
 }
 
-function escapeHtml(value = "") {
+
+function escapeHtml(
+    value = ""
+) {
+
     return String(value)
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+
 }
 
-businessFilter.addEventListener("change", loadRules);
 
-newRuleButton.addEventListener("click", openCreateModal);
-closeModalButton.addEventListener("click", closeModal);
-cancelButton.addEventListener("click", closeModal);
-modalBackdrop.addEventListener("click", closeModal);
+businessFilter.addEventListener(
+    "change",
+    loadRules
+);
+
+newRuleButton.addEventListener(
+    "click",
+    openCreateModal
+);
+
+closeModalButton.addEventListener(
+    "click",
+    closeModal
+);
+
+cancelButton.addEventListener(
+    "click",
+    closeModal
+);
+
+modalBackdrop.addEventListener(
+    "click",
+    closeModal
+);
+
 
 async function initializeRulesManager() {
+
     try {
+
         await loadBusinesses();
+
         await loadRules();
-    } catch (error) {
+
+    }
+    catch (error) {
+
         console.error(error);
 
-        showMessage(error.message, "error");
+        showMessage(
+            error.message,
+            "error"
+        );
+
     }
+
 }
+
 
 initializeRulesManager();

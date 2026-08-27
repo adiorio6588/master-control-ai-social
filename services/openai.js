@@ -5,7 +5,7 @@ const OpenAI = require("openai");
 // true  = Fake AI replies (FREE)
 // false = Real OpenAI API
 // ==========================================
-const USE_MOCK_AI = true;
+const USE_MOCK_AI = false;
 
 const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -18,7 +18,7 @@ async function generateReply(prompt, comment) {
     }
 
     const response = await client.responses.create({
-        model: "gpt-5.5",
+        model: "gpt-5-mini",
         instructions: prompt,
         input: comment
     });

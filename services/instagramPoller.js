@@ -132,8 +132,10 @@ async function generateAutomaticReply({
     organizationId,
     business,
     commentId,
+    externalCommentId,
     content,
-    automation
+    automation,
+    accessToken
 }) {
 
     const startedAt =
@@ -233,67 +235,285 @@ async function generateAutomaticReply({
             : 1;
 
 
-    database.transaction(
-        () => {
+    /*
+    ================================================
+    SAVE GENERATED REPLY
+    ================================================
+    */
 
-            database
-                .prepare(`
-                    UPDATE comments
+    const replyId =
+        database.transaction(
+            () => {
 
-                    SET
-                        reply = ?,
-                        source = ?,
-                        rule = ?,
-                        confidence = ?,
-                        processing_time = ?,
-                        estimated_cost = ?,
-                        status = ?,
-                        updated_at =
-                            CURRENT_TIMESTAMP
+                database
+                    .prepare(`
+                        UPDATE comments
 
-                    WHERE id = ?
-                `)
-                .run(
-                    reply,
-                    source,
-                    ruleName,
-                    confidence,
-                    processingTime,
-                    estimatedCost,
-                    finalStatus,
-                    commentId
+                        SET
+                            reply = ?,
+                            source = ?,
+                            rule = ?,
+                            confidence = ?,
+                            processing_time = ?,
+                            estimated_cost = ?,
+                            status = ?,
+                            updated_at =
+                                CURRENT_TIMESTAMP
+
+                        WHERE id = ?
+                    `)
+                    .run(
+                        reply,
+                        source,
+                        ruleName,
+                        confidence,
+                        processingTime,
+                        estimatedCost,
+                        finalStatus,
+                        commentId
+                    );
+
+
+                const result =
+                    database
+                        .prepare(`
+                            INSERT INTO replies (
+                                comment_id,
+                                content,
+                                approved,
+                                posted
+                            )
+
+                            VALUES (
+                                ?,
+                                ?,
+                                ?,
+                                0
+                            )
+                        `)
+                        .run(
+                            commentId,
+                            reply,
+                            approved
+                        );
+
+
+                return Number(
+                    result.lastInsertRowid
                 );
 
-
-            database
-                .prepare(`
-                    INSERT INTO replies (
-                        comment_id,
-                        content,
-                        approved,
-                        posted
-                    )
-
-                    VALUES (
-                        ?,
-                        ?,
-                        ?,
-                        0
-                    )
-                `)
-                .run(
-                    commentId,
-                    reply,
-                    approved
-                );
-
-        }
-    )();
+            }
+        )();
 
 
     console.log(
         `🤖 Instagram reply generated for comment ${commentId}`
     );
+
+
+    /*
+    ================================================
+    AUTO POST TO INSTAGRAM
+    ================================================
+    */
+
+    if (
+        automation.autoPost
+        &&
+        !automation.requireApproval
+    ) {
+
+        try {
+
+            if (
+                !externalCommentId
+                ||
+                !accessToken
+            ) {
+
+                throw new Error(
+                    "Instagram comment ID or access token is missing."
+                );
+
+            }
+
+
+            const replyUrl =
+                new URL(
+                    `https://graph.instagram.com/v26.0/${encodeURIComponent(
+                        externalCommentId
+                    )}/replies`
+                );
+
+
+            replyUrl.searchParams.set(
+                "message",
+                reply
+            );
+
+
+            replyUrl.searchParams.set(
+                "access_token",
+                accessToken
+            );
+
+
+            const response =
+                await fetch(
+                    replyUrl,
+                    {
+                        method:
+                            "POST",
+
+                        headers: {
+                            Accept:
+                                "application/json"
+                        }
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                !response.ok
+                ||
+                !data.id
+            ) {
+
+                throw new Error(
+                    data?.error?.message ||
+                    "Instagram rejected the automatic reply."
+                );
+
+            }
+
+
+            database.transaction(
+                () => {
+
+                    database
+                        .prepare(`
+                            UPDATE comments
+
+                            SET
+                                status = 'posted',
+                                updated_at =
+                                    CURRENT_TIMESTAMP
+
+                            WHERE id = ?
+                        `)
+                        .run(
+                            commentId
+                        );
+
+
+                    database
+                        .prepare(`
+                            UPDATE replies
+
+                            SET
+                                approved = 1,
+                                posted = 1
+
+                            WHERE id = ?
+                        `)
+                        .run(
+                            replyId
+                        );
+
+                }
+            )();
+
+
+            console.log(
+                `🚀 Instagram reply auto-posted for comment ${commentId}`
+            );
+
+        }
+        catch (error) {
+
+            console.error(
+                `Instagram auto-post failed for comment ${commentId}:`,
+                error
+            );
+
+        }
+
+    }
+
+}
+
+
+/*
+====================================================
+GET INSTAGRAM COMMENTS FOR POST
+====================================================
+*/
+
+async function getPostComments(
+    mediaId,
+    accessToken
+) {
+
+    const commentsUrl =
+        new URL(
+            `https://graph.instagram.com/v26.0/${encodeURIComponent(
+                mediaId
+            )}/comments`
+        );
+
+
+    commentsUrl.searchParams.set(
+        "fields",
+        "id,text,timestamp,username"
+    );
+
+
+    commentsUrl.searchParams.set(
+        "limit",
+        "50"
+    );
+
+
+    commentsUrl.searchParams.set(
+        "access_token",
+        accessToken
+    );
+
+
+    const response =
+        await fetch(
+            commentsUrl,
+            {
+                headers: {
+                    Accept:
+                        "application/json"
+                }
+            }
+        );
+
+
+    const data =
+        await response.json();
+
+
+    if (!response.ok) {
+
+        console.error(
+            `Instagram comments error for media ${mediaId}:`,
+            data?.error?.message ||
+            data
+        );
+
+        return [];
+
+    }
+
+
+    return data.data || [];
 
 }
 
@@ -380,6 +600,12 @@ async function syncInstagramComments() {
                 const account of accounts
             ) {
 
+                /*
+                ========================================
+                GET INSTAGRAM MEDIA
+                ========================================
+                */
+
                 const mediaUrl =
                     new URL(
                         "https://graph.instagram.com/me/media"
@@ -388,7 +614,7 @@ async function syncInstagramComments() {
 
                 mediaUrl.searchParams.set(
                     "fields",
-                    "id,comments.limit(50){id,text,timestamp,username}"
+                    "id"
                 );
 
 
@@ -424,6 +650,7 @@ async function syncInstagramComments() {
 
                     console.error(
                         "Instagram polling error:",
+                        data?.error?.message ||
                         data
                     );
 
@@ -476,13 +703,30 @@ async function syncInstagramComments() {
                     0;
 
 
+                /*
+                ========================================
+                CHECK EACH POST DIRECTLY
+                ========================================
+                */
+
                 for (
                     const post of data.data || []
                 ) {
 
+                    if (!post.id) {
+                        continue;
+                    }
+
+
+                    const comments =
+                        await getPostComments(
+                            post.id,
+                            accessToken
+                        );
+
+
                     for (
-                        const comment of
-                        post?.comments?.data || []
+                        const comment of comments
                     ) {
 
                         const id =
@@ -496,6 +740,47 @@ async function syncInstagramComments() {
                                 comment.text || ""
                             ).trim();
 
+
+                        const commentUsername =
+                            String(
+                                comment.username || ""
+                            )
+                                .trim()
+                                .toLowerCase();
+
+
+                        const accountUsername =
+                            String(
+                                account.account_name || ""
+                            )
+                                .trim()
+                                .toLowerCase();
+
+
+                        /*
+                        ========================================
+                        IGNORE OUR OWN COMMENTS / REPLIES
+                        ========================================
+                        */
+
+                        if (
+                            commentUsername
+                            &&
+                            accountUsername
+                            &&
+                            commentUsername === accountUsername
+                        ) {
+
+                            continue;
+
+                        }
+
+
+                        /*
+                        ========================================
+                        IGNORE INVALID / EXISTING COMMENTS
+                        ========================================
+                        */
 
                         if (
                             !id
@@ -576,10 +861,15 @@ async function syncInstagramComments() {
 
                                     commentId,
 
+                                    externalCommentId:
+                                        id,
+
                                     content:
                                         text,
 
-                                    automation
+                                    automation,
+
+                                    accessToken
 
                                 });
 

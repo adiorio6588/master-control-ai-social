@@ -1035,5 +1035,8 @@ function startFacebookPoller() {
 
 
 module.exports = {
-    startFacebookPoller
+    startFacebookPoller,
+    generateAutomaticReply,
+    getPageAccessToken,
+    getAutomationSettings
 };

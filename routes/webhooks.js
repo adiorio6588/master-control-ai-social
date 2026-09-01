@@ -6,6 +6,20 @@ const database =
     require("../database/database");
 
 
+const {
+    decryptToken
+} =
+    require("../services/tokenEncryption");
+
+
+const {
+    generateAutomaticReply,
+    getPageAccessToken,
+    getAutomationSettings
+} =
+    require("../services/facebookPoller");
+
+
 const router =
     express.Router();
 
@@ -120,7 +134,7 @@ back into the Inbox.
 
 router.post(
     "/webhooks/meta",
-    (req, res) => {
+    async (req, res) => {
 
         try {
 
@@ -522,7 +536,8 @@ router.post(
                                 social_accounts.external_account_id,
                                 social_accounts.connected,
                                 businesses.name AS business_name,
-                                businesses.organization_id
+                                businesses.organization_id,
+                                businesses.prompt
 
                             FROM social_accounts
 
@@ -809,6 +824,121 @@ router.post(
                                 createdAt,
                                 externalCommentId
                             );
+
+
+                    const commentId =
+                        Number(
+                            result.lastInsertRowid
+                        );
+
+
+                    /*
+                    ====================================
+                    FACEBOOK AUTOMATIC REPLY
+                    ====================================
+                    */
+
+                    const automation =
+                        getAutomationSettings(
+                            socialAccount.organization_id,
+                            socialAccount.business_id
+                        );
+
+
+                    if (
+                        automation.autoGenerate
+                    ) {
+
+                        try {
+
+                            const connection =
+                                database
+                                    .prepare(`
+                                        SELECT access_token_encrypted
+
+                                        FROM social_oauth_connections
+
+                                        WHERE
+                                            organization_id = ?
+                                            AND provider = 'meta'
+                                            AND access_token_encrypted != ''
+
+                                        LIMIT 1
+                                    `)
+                                    .get(
+                                        socialAccount.organization_id
+                                    );
+
+
+                            if (!connection) {
+
+                                throw new Error(
+                                    "Meta connection not found."
+                                );
+
+                            }
+
+
+                            const organizationAccessToken =
+                                decryptToken(
+                                    connection.access_token_encrypted
+                                );
+
+
+                            const page =
+                                await getPageAccessToken(
+                                    pageId,
+                                    organizationAccessToken
+                                );
+
+
+                            if (!page) {
+
+                                throw new Error(
+                                    "Facebook Page access token not available."
+                                );
+
+                            }
+
+
+                            await generateAutomaticReply({
+
+                                business: {
+                                    id:
+                                        socialAccount.business_id,
+
+                                    name:
+                                        socialAccount.business_name,
+
+                                    prompt:
+                                        socialAccount.prompt
+                                },
+
+                                commentId,
+
+                                externalCommentId,
+
+                                content:
+                                    message,
+
+                                automation,
+
+                                pageAccessToken:
+                                    page.accessToken
+
+                            });
+
+                        }
+                        catch (error) {
+
+                            console.error(
+                                "Facebook webhook automatic reply failed:",
+                                error
+                            );
+
+                        }
+
+                    }
 
 
                     console.log(

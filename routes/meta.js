@@ -4179,6 +4179,366 @@ router.get(
 
 /*
 ====================================================
+GET /api/meta/instagram-debug
+====================================================
+*/
+
+router.get(
+    "/meta/instagram-debug",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(req.organizationId);
+
+
+            const connection =
+                database
+                    .prepare(`
+                        SELECT
+                            provider_user_id,
+                            provider_user_name,
+                            access_token_encrypted,
+                            token_expires_at,
+                            scopes
+
+                        FROM social_oauth_connections
+
+                        WHERE
+                            organization_id = ?
+                            AND provider = 'instagram'
+                    `)
+                    .get(organizationId);
+
+
+            if (
+                !connection ||
+                !connection.access_token_encrypted
+            ) {
+
+                return res.status(404).json({
+                    error: "Instagram is not connected."
+                });
+
+            }
+
+
+            const accessToken =
+                decryptToken(
+                    connection.access_token_encrypted
+                );
+
+
+            if (!accessToken) {
+
+                return res.status(500).json({
+                    error:
+                        "Unable to decrypt Instagram connection."
+                });
+
+            }
+
+
+            const profileUrl =
+                new URL(
+                    "https://graph.instagram.com/me"
+                );
+
+
+            profileUrl.searchParams.set(
+                "fields",
+                "id,user_id,username,account_type"
+            );
+
+
+            profileUrl.searchParams.set(
+                "access_token",
+                accessToken
+            );
+
+
+            const profileResponse =
+                await fetch(profileUrl, {
+                    headers: {
+                        Accept: "application/json"
+                    }
+                });
+
+
+            const profileData =
+                await profileResponse.json();
+
+
+            return res.status(
+                profileResponse.ok ? 200 : 502
+            ).json({
+
+                success:
+                    profileResponse.ok,
+
+                storedConnection: {
+                    providerUserId:
+                        connection.provider_user_id,
+
+                    providerUserName:
+                        connection.provider_user_name,
+
+                    tokenExpiresAt:
+                        connection.token_expires_at,
+
+                    storedScopes:
+                        connection.scopes
+                },
+
+                instagramProfile:
+                    profileData
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Instagram debug error:",
+                error
+            );
+
+
+            return res.status(500).json({
+                error:
+                    "Unable to inspect Instagram connection.",
+
+                details:
+                    error.message
+            });
+
+        }
+
+    }
+);
+
+
+/*
+====================================================
+GET /api/meta/instagram-comment-debug
+====================================================
+*/
+
+router.get(
+    "/meta/instagram-comment-debug",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(req.organizationId);
+
+            const connection =
+                database
+                    .prepare(`
+                        SELECT access_token_encrypted
+                        FROM social_oauth_connections
+                        WHERE
+                            organization_id = ?
+                            AND provider = 'instagram'
+                    `)
+                    .get(organizationId);
+
+            if (!connection?.access_token_encrypted) {
+                return res.status(404).json({
+                    error: "Instagram is not connected."
+                });
+            }
+
+            const accessToken =
+                decryptToken(
+                    connection.access_token_encrypted
+                );
+
+            const postId =
+                "18094150174995583";
+
+            const commentsUrl =
+                new URL(
+                    `https://graph.instagram.com/v26.0/${postId}/comments`
+                );
+
+            commentsUrl.searchParams.set(
+                "fields",
+                "id,text,timestamp,username"
+            );
+
+            commentsUrl.searchParams.set(
+                "limit",
+                "50"
+            );
+
+            commentsUrl.searchParams.set(
+                "access_token",
+                accessToken
+            );
+
+            const response =
+                await fetch(commentsUrl);
+
+            const data =
+                await response.json();
+
+            return res.json({
+                httpStatus: response.status,
+                ok: response.ok,
+                postId,
+                response: data
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Instagram comment debug error:",
+                error
+            );
+
+            return res.status(500).json({
+                error: error.message
+            });
+
+        }
+
+    }
+);
+
+
+/*
+====================================================
+GET /api/meta/instagram-token-debug
+====================================================
+*/
+
+router.get(
+    "/meta/instagram-token-debug",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(req.organizationId);
+
+            const connection =
+                database
+                    .prepare(`
+                        SELECT access_token_encrypted
+                        FROM social_oauth_connections
+                        WHERE
+                            organization_id = ?
+                            AND provider = 'instagram'
+                    `)
+                    .get(organizationId);
+
+
+            if (!connection?.access_token_encrypted) {
+
+                return res.status(404).json({
+                    error: "Instagram is not connected."
+                });
+
+            }
+
+
+            const instagramAccessToken =
+                decryptToken(
+                    connection.access_token_encrypted
+                );
+
+
+            const appId =
+                process.env.META_APP_ID;
+
+            const appSecret =
+                process.env.META_APP_SECRET;
+
+
+            if (!appId || !appSecret) {
+
+                return res.status(500).json({
+                    error:
+                        "Meta app credentials are missing."
+                });
+
+            }
+
+
+            const appAccessToken =
+                `${appId}|${appSecret}`;
+
+
+            const debugUrl =
+                new URL(
+                    "https://graph.facebook.com/debug_token"
+                );
+
+
+            debugUrl.searchParams.set(
+                "input_token",
+                instagramAccessToken
+            );
+
+
+            debugUrl.searchParams.set(
+                "access_token",
+                appAccessToken
+            );
+
+
+            const response =
+                await fetch(debugUrl);
+
+
+            const data =
+                await response.json();
+
+
+            return res.status(
+                response.ok ? 200 : 502
+            ).json({
+
+                httpStatus:
+                    response.status,
+
+                ok:
+                    response.ok,
+
+                debug:
+                    data
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Instagram token debug error:",
+                error
+            );
+
+
+            return res.status(500).json({
+                error:
+                    error.message
+            });
+
+        }
+
+    }
+);
+
+
+/*
+====================================================
 POST /api/meta/instagram-token
 ====================================================
 */

@@ -32,8 +32,8 @@ function getAutomationSettings(
     businessId
 ) {
 
-    const instagramKey =
-        `automation:${organizationId}:${businessId}:instagram`;
+    const facebookKey =
+        `automation:${organizationId}:${businessId}:facebook`;
 
     const allKey =
         `automation:${organizationId}:${businessId}:all`;
@@ -47,7 +47,7 @@ function getAutomationSettings(
                 WHERE key = ?
             `)
             .get(
-                instagramKey
+                facebookKey
             );
 
 
@@ -129,13 +129,12 @@ GENERATE AUTOMATIC REPLY
 */
 
 async function generateAutomaticReply({
-    organizationId,
     business,
     commentId,
     externalCommentId,
     content,
     automation,
-    accessToken
+    pageAccessToken
 }) {
 
     const startedAt =
@@ -307,13 +306,13 @@ async function generateAutomaticReply({
 
 
     console.log(
-        `🤖 Instagram reply generated for comment ${commentId}`
+        `🤖 Facebook reply generated for comment ${commentId}`
     );
 
 
     /*
     ================================================
-    AUTO POST TO INSTAGRAM
+    AUTO POST TO FACEBOOK
     ================================================
     */
 
@@ -328,11 +327,11 @@ async function generateAutomaticReply({
             if (
                 !externalCommentId
                 ||
-                !accessToken
+                !pageAccessToken
             ) {
 
                 throw new Error(
-                    "Instagram comment ID or access token is missing."
+                    "Facebook comment ID or Page access token is missing."
                 );
 
             }
@@ -340,9 +339,9 @@ async function generateAutomaticReply({
 
             const replyUrl =
                 new URL(
-                    `https://graph.instagram.com/v26.0/${encodeURIComponent(
+                    `https://graph.facebook.com/v26.0/${encodeURIComponent(
                         externalCommentId
-                    )}/replies`
+                    )}/comments`
                 );
 
 
@@ -354,7 +353,7 @@ async function generateAutomaticReply({
 
             replyUrl.searchParams.set(
                 "access_token",
-                accessToken
+                pageAccessToken
             );
 
 
@@ -385,7 +384,7 @@ async function generateAutomaticReply({
 
                 throw new Error(
                     data?.error?.message ||
-                    "Instagram rejected the automatic reply."
+                    "Facebook rejected the automatic reply."
                 );
 
             }
@@ -429,14 +428,14 @@ async function generateAutomaticReply({
 
 
             console.log(
-                `🚀 Instagram reply auto-posted for comment ${commentId}`
+                `🚀 Facebook reply auto-posted for comment ${commentId}`
             );
 
         }
         catch (error) {
 
             console.error(
-                `Instagram auto-post failed for comment ${commentId}:`,
+                `Facebook auto-post failed for comment ${commentId}:`,
                 error
             );
 
@@ -449,44 +448,36 @@ async function generateAutomaticReply({
 
 /*
 ====================================================
-GET INSTAGRAM COMMENTS FOR POST
+GET FACEBOOK PAGE ACCESS TOKEN
 ====================================================
 */
 
-async function getPostComments(
-    mediaId,
-    accessToken
+async function getPageAccessToken(
+    pageId,
+    organizationAccessToken
 ) {
 
-    const commentsUrl =
+    const accountsUrl =
         new URL(
-            `https://graph.instagram.com/v26.0/${encodeURIComponent(
-                mediaId
-            )}/comments`
+            "https://graph.facebook.com/v26.0/me/accounts"
         );
 
 
-    commentsUrl.searchParams.set(
+    accountsUrl.searchParams.set(
         "fields",
-        "id,text,timestamp,username"
+        "id,name,access_token"
     );
 
 
-    commentsUrl.searchParams.set(
-        "limit",
-        "50"
-    );
-
-
-    commentsUrl.searchParams.set(
+    accountsUrl.searchParams.set(
         "access_token",
-        accessToken
+        organizationAccessToken
     );
 
 
     const response =
         await fetch(
-            commentsUrl,
+            accountsUrl,
             {
                 headers: {
                     Accept:
@@ -503,7 +494,124 @@ async function getPostComments(
     if (!response.ok) {
 
         console.error(
-            `Instagram comments error for media ${mediaId}:`,
+            "Facebook Page token lookup failed:",
+            data?.error?.message ||
+            data
+        );
+
+        return null;
+
+    }
+
+
+    const pages =
+        Array.isArray(
+            data.data
+        )
+            ? data.data
+            : [];
+
+
+    const page =
+        pages.find(
+            item =>
+                String(
+                    item.id
+                ) === String(
+                    pageId
+                )
+        );
+
+
+    if (
+        !page
+        ||
+        !page.access_token
+    ) {
+
+        return null;
+
+    }
+
+
+    return {
+        id:
+            String(
+                page.id
+            ),
+
+        name:
+            page.name || "",
+
+        accessToken:
+            page.access_token
+    };
+
+}
+
+
+/*
+====================================================
+GET FACEBOOK COMMENTS
+====================================================
+*/
+
+async function getFacebookPosts(
+    pageId,
+    pageAccessToken
+) {
+
+    const feedUrl =
+        new URL(
+            `https://graph.facebook.com/v26.0/${encodeURIComponent(
+                pageId
+            )}/feed`
+        );
+
+
+    feedUrl.searchParams.set(
+        "fields",
+        [
+            "id",
+            "message",
+            "created_time",
+            "comments.limit(50){id,message,created_time,from{id,name}}"
+        ].join(",")
+    );
+
+
+    feedUrl.searchParams.set(
+        "limit",
+        "25"
+    );
+
+
+    feedUrl.searchParams.set(
+        "access_token",
+        pageAccessToken
+    );
+
+
+    const response =
+        await fetch(
+            feedUrl,
+            {
+                headers: {
+                    Accept:
+                        "application/json"
+                }
+            }
+        );
+
+
+    const data =
+        await response.json();
+
+
+    if (!response.ok) {
+
+        console.error(
+            `Facebook feed error for Page ${pageId}:`,
             data?.error?.message ||
             data
         );
@@ -520,11 +628,11 @@ async function getPostComments(
 
 /*
 ====================================================
-SYNC INSTAGRAM COMMENTS
+SYNC FACEBOOK COMMENTS
 ====================================================
 */
 
-async function syncInstagramComments() {
+async function syncFacebookComments() {
 
     if (polling) {
         return;
@@ -547,7 +655,7 @@ async function syncInstagramComments() {
                     FROM social_oauth_connections
 
                     WHERE
-                        provider = 'instagram'
+                        provider = 'meta'
                         AND access_token_encrypted != ''
                 `)
                 .all();
@@ -557,14 +665,14 @@ async function syncInstagramComments() {
             const connection of connections
         ) {
 
-            const accessToken =
+            const organizationAccessToken =
                 decryptToken(
                     connection
                         .access_token_encrypted
                 );
 
 
-            if (!accessToken) {
+            if (!organizationAccessToken) {
                 continue;
             }
 
@@ -588,7 +696,7 @@ async function syncInstagramComments() {
 
                         WHERE
                             businesses.organization_id = ?
-                            AND social_accounts.platform = 'instagram'
+                            AND social_accounts.platform = 'facebook'
                             AND social_accounts.connected = 1
                     `)
                     .all(
@@ -600,58 +708,35 @@ async function syncInstagramComments() {
                 const account of accounts
             ) {
 
+                const pageId =
+                    String(
+                        account.external_account_id ||
+                        ""
+                    ).trim();
+
+
+                if (!pageId) {
+                    continue;
+                }
+
+
                 /*
                 ========================================
-                GET INSTAGRAM MEDIA
+                GET PAGE TOKEN
                 ========================================
                 */
 
-                const mediaUrl =
-                    new URL(
-                        "https://graph.instagram.com/me/media"
+                const page =
+                    await getPageAccessToken(
+                        pageId,
+                        organizationAccessToken
                     );
 
 
-                mediaUrl.searchParams.set(
-                    "fields",
-                    "id,comments_count"
-                );
-
-
-                mediaUrl.searchParams.set(
-                    "limit",
-                    "25"
-                );
-
-
-                mediaUrl.searchParams.set(
-                    "access_token",
-                    accessToken
-                );
-
-
-                const response =
-                    await fetch(
-                        mediaUrl,
-                        {
-                            headers: {
-                                Accept:
-                                    "application/json"
-                            }
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
+                if (!page) {
 
                     console.error(
-                        "Instagram polling error:",
-                        data?.error?.message ||
-                        data
+                        `Facebook Page ${pageId} is not available through the current Meta connection.`
                     );
 
                     continue;
@@ -659,6 +744,17 @@ async function syncInstagramComments() {
                 }
 
 
+                /*
+                ========================================
+                GET POSTS + COMMENTS
+                ========================================
+                */
+
+                const posts =
+                    await getFacebookPosts(
+                        pageId,
+                        page.accessToken
+                    );
 
 
                 const findExisting =
@@ -669,7 +765,7 @@ async function syncInstagramComments() {
                             FROM comments
 
                             WHERE
-                                platform = 'instagram'
+                                platform = 'facebook'
                                 AND external_comment_id = ?
                         `);
 
@@ -690,12 +786,12 @@ async function syncInstagramComments() {
 
                             VALUES (
                                 ?,
-                                'instagram',
+                                'facebook',
                                 ?,
                                 ?,
                                 'pending',
                                 ?,
-                                'instagram-poller',
+                                'facebook-poller',
                                 ?
                             )
                         `);
@@ -707,25 +803,22 @@ async function syncInstagramComments() {
 
                 /*
                 ========================================
-                CHECK EACH POST DIRECTLY
+                CHECK EACH COMMENT
                 ========================================
                 */
 
                 for (
-                    const post of data.data || []
+                    const post of posts
                 ) {
 
-                    if (!post.id) {
-                        continue;
-                    }
-
-
                     const comments =
-                        await getPostComments(
-                            post.id,
-                            accessToken
-                        );
-
+                        Array.isArray(
+                            post
+                                ?.comments
+                                ?.data
+                        )
+                            ? post.comments.data
+                            : [];
 
 
                     for (
@@ -740,38 +833,29 @@ async function syncInstagramComments() {
 
                         const text =
                             String(
-                                comment.text || ""
+                                comment.message || ""
                             ).trim();
 
 
-                        const commentUsername =
+                        const authorId =
                             String(
-                                comment.username || ""
-                            )
-                                .trim()
-                                .toLowerCase();
-
-
-                        const accountUsername =
-                            String(
-                                account.account_name || ""
-                            )
-                                .trim()
-                                .toLowerCase();
+                                comment
+                                    ?.from
+                                    ?.id ||
+                                ""
+                            ).trim();
 
 
                         /*
                         ========================================
-                        IGNORE OUR OWN COMMENTS / REPLIES
+                        IGNORE OUR OWN PAGE COMMENTS / REPLIES
                         ========================================
                         */
 
                         if (
-                            commentUsername
+                            authorId
                             &&
-                            accountUsername
-                            &&
-                            commentUsername === accountUsername
+                            authorId === pageId
                         ) {
 
                             continue;
@@ -802,14 +886,16 @@ async function syncInstagramComments() {
                             insertComment.run(
                                 account.business_id,
 
-                                comment.username ||
-                                    "Instagram User",
+                                comment
+                                    ?.from
+                                    ?.name ||
+                                    "Facebook User",
 
                                 text,
 
-                                comment.timestamp
+                                comment.created_time
                                     ? new Date(
-                                        comment.timestamp
+                                        comment.created_time
                                     ).toISOString()
                                     : new Date()
                                         .toISOString(),
@@ -848,9 +934,6 @@ async function syncInstagramComments() {
 
                                 await generateAutomaticReply({
 
-                                    organizationId:
-                                        connection.organization_id,
-
                                     business: {
                                         id:
                                             account.business_id,
@@ -872,7 +955,8 @@ async function syncInstagramComments() {
 
                                     automation,
 
-                                    accessToken
+                                    pageAccessToken:
+                                        page.accessToken
 
                                 });
 
@@ -880,7 +964,7 @@ async function syncInstagramComments() {
                             catch (error) {
 
                                 console.error(
-                                    "Instagram automatic reply failed:",
+                                    "Facebook automatic reply failed:",
                                     error
                                 );
 
@@ -898,7 +982,7 @@ async function syncInstagramComments() {
                 ) {
 
                     console.log(
-                        `✅ Instagram poller added ${inserted} new comment(s) for ${account.account_name}`
+                        `✅ Facebook poller added ${inserted} new comment(s) for ${account.account_name}`
                     );
 
                 }
@@ -911,7 +995,7 @@ async function syncInstagramComments() {
     catch (error) {
 
         console.error(
-            "Instagram poller failed:",
+            "Facebook poller failed:",
             error
         );
 
@@ -932,18 +1016,18 @@ START POLLER
 ====================================================
 */
 
-function startInstagramPoller() {
+function startFacebookPoller() {
 
     console.log(
-        "Instagram comment poller started — checking every 2 minutes."
+        "Facebook comment poller started — checking every 2 minutes."
     );
 
 
-    syncInstagramComments();
+    syncFacebookComments();
 
 
     setInterval(
-        syncInstagramComments,
+        syncFacebookComments,
         2 * 60 * 1000
     );
 
@@ -951,5 +1035,5 @@ function startInstagramPoller() {
 
 
 module.exports = {
-    startInstagramPoller
+    startFacebookPoller
 };

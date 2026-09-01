@@ -82,6 +82,11 @@ const {
 } =
     require("./services/instagramPoller");
 
+const {
+    startFacebookPoller
+} =
+    require("./services/facebookPoller");
+
 
 /*
 ====================================================
@@ -708,6 +713,8 @@ app.listen(
         */
 
         startInstagramPoller();
+
+        startFacebookPoller();
 
     }
 );

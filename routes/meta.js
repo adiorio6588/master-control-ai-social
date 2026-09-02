@@ -1494,7 +1494,7 @@ router.post(
                 .searchParams
                 .set(
                     "subscribed_fields",
-                    "feed"
+                    "feed,messages"
                 );
 
 
@@ -1566,7 +1566,8 @@ router.post(
                     pageName:
                         page.name,
                     fields: [
-                        "feed"
+                        "feed",
+                        "messages"
                     ]
                 }
             );
@@ -1594,7 +1595,8 @@ router.post(
                 },
 
                 subscribedFields: [
-                    "feed"
+                    "feed",
+                    "messages"
                 ]
 
             });

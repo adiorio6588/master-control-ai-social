@@ -279,6 +279,67 @@ function initializeDatabase() {
 
         /*
         ====================================================
+        MESSAGES
+        ====================================================
+        */
+
+        CREATE TABLE IF NOT EXISTS messages (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            business_id INTEGER,
+
+            platform TEXT NOT NULL,
+
+            sender_id TEXT NOT NULL,
+
+            sender_name TEXT DEFAULT 'Customer',
+
+            content TEXT NOT NULL,
+
+            external_message_id TEXT NOT NULL,
+
+            conversation_id TEXT DEFAULT '',
+
+            direction TEXT NOT NULL
+                DEFAULT 'incoming',
+
+            status TEXT NOT NULL
+                DEFAULT 'pending',
+
+            reply TEXT,
+
+            source TEXT,
+
+            rule TEXT,
+
+            confidence INTEGER,
+
+            processing_time INTEGER,
+
+            estimated_cost REAL,
+
+            created_at TEXT NOT NULL
+                DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TEXT,
+
+            FOREIGN KEY (
+                business_id
+            )
+            REFERENCES businesses(id)
+            ON DELETE SET NULL,
+
+            UNIQUE (
+                platform,
+                external_message_id
+            )
+
+        );
+
+
+        /*
+        ====================================================
         REPLIES
         ====================================================
         */

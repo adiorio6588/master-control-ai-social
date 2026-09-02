@@ -156,6 +156,11 @@ router.post(
                     }
                 );
 
+                console.log(
+                    "META RAW:",
+                    JSON.stringify(body, null, 2)
+                );
+
             /*
             ============================================
             ONLY PROCESS PAGE EVENTS
@@ -566,6 +571,192 @@ router.post(
                     );
 
                     continue;
+
+                }
+
+
+                /*
+                ========================================
+                FACEBOOK MESSENGER MESSAGES
+                ========================================
+                */
+
+                const messagingEvents =
+                    Array.isArray(
+                        entry.messaging
+                    )
+                        ? entry.messaging
+                        : [];
+
+
+                for (
+                    const event of messagingEvents
+                ) {
+
+                    const senderId =
+                        String(
+                            event?.sender?.id ||
+                            ""
+                        ).trim();
+
+
+                    const message =
+                        event?.message ||
+                        {};
+
+
+                    const externalMessageId =
+                        String(
+                            message.mid ||
+                            ""
+                        ).trim();
+
+
+                    const content =
+                        String(
+                            message.text ||
+                            ""
+                        ).trim();
+
+
+                    if (
+                        message.is_echo
+                        ||
+                        senderId === pageId
+                    ) {
+
+                        continue;
+
+                    }
+
+
+                    if (
+                        !senderId
+                        ||
+                        !externalMessageId
+                        ||
+                        !content
+                    ) {
+
+                        continue;
+
+                    }
+
+
+                    const existingMessage =
+                        database
+                            .prepare(`
+                                SELECT id
+
+                                FROM messages
+
+                                WHERE
+                                    platform = 'facebook'
+                                    AND external_message_id = ?
+                            `)
+                            .get(
+                                externalMessageId
+                            );
+
+
+                    if (existingMessage) {
+
+                        continue;
+
+                    }
+
+
+                    let createdAt =
+                        new Date()
+                            .toISOString();
+
+
+                    const timestamp =
+                        Number(
+                            event.timestamp
+                        );
+
+
+                    if (
+                        Number.isFinite(timestamp)
+                        &&
+                        timestamp > 0
+                    ) {
+
+                        createdAt =
+                            new Date(
+                                timestamp
+                            )
+                                .toISOString();
+
+                    }
+
+
+                    const result =
+                        database
+                            .prepare(`
+                                INSERT INTO messages (
+                                    business_id,
+                                    platform,
+                                    sender_id,
+                                    sender_name,
+                                    content,
+                                    external_message_id,
+                                    conversation_id,
+                                    direction,
+                                    status,
+                                    source,
+                                    created_at
+                                )
+
+                                VALUES (
+                                    ?,
+                                    'facebook',
+                                    ?,
+                                    'Facebook User',
+                                    ?,
+                                    ?,
+                                    ?,
+                                    'incoming',
+                                    'pending',
+                                    'meta',
+                                    ?
+                                )
+                            `)
+                            .run(
+                                socialAccount.business_id,
+                                senderId,
+                                content,
+                                externalMessageId,
+                                senderId,
+                                createdAt
+                            );
+
+
+                    console.log(
+                        "✅ Facebook Messenger message added:",
+                        {
+                            localMessageId:
+                                Number(
+                                    result.lastInsertRowid
+                                ),
+
+                            businessId:
+                                socialAccount.business_id,
+
+                            business:
+                                socialAccount.business_name,
+
+                            pageId,
+
+                            senderId,
+
+                            externalMessageId,
+
+                            message:
+                                content
+                        }
+                    );
 
                 }
 

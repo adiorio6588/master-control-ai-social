@@ -421,6 +421,17 @@ function renderComments() {
                 `${comment.business_emoji || "🏢"} ` +
                 `${comment.business_name || "Unknown Business"}`;
 
+
+            const listPlatformLabel =
+                comment.record_type === "message"
+                    ? "Messenger"
+                    : comment.platform === "facebook"
+                        ? "Facebook Comment"
+                        : formatPlatformName(
+                            comment.platform
+                        );
+
+
             card.innerHTML = `
                 <div class="comment-card-top">
 
@@ -445,9 +456,7 @@ function renderComments() {
                             )}
                             //
                             ${escapeHtml(
-                                formatPlatformName(
-                                    comment.platform
-                                )
+                                listPlatformLabel
                             )}
                         </small>
 

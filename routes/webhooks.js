@@ -838,6 +838,7 @@ router.post(
 
                     const senderId =
                         String(
+                            value?.from?.id ||
                             value.sender_id ||
                             ""
                         ).trim();
@@ -845,6 +846,7 @@ router.post(
 
                     const senderName =
                         String(
+                            value?.from?.name ||
                             value.sender_name ||
                             "Facebook User"
                         ).trim();

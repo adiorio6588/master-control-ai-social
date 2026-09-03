@@ -288,8 +288,212 @@ router.get(
                     );
 
 
+            /*
+            ====================================================
+            LOAD MESSENGER MESSAGES
+            ====================================================
+            */
+
+            const messages =
+                database
+                    .prepare(`
+                        SELECT
+                            messages.id
+                                AS message_id,
+
+                            messages.business_id,
+
+                            businesses.organization_id,
+
+                            businesses.name
+                                AS business_name,
+
+                            businesses.emoji
+                                AS business_emoji,
+
+                            messages.platform,
+
+                            messages.sender_name
+                                AS author,
+
+                            messages.content,
+
+                            messages.status,
+
+                            messages.reply,
+
+                            messages.source,
+
+                            messages.external_message_id,
+
+                            messages.rule,
+
+                            messages.confidence,
+
+                            messages.processing_time,
+
+                            messages.estimated_cost,
+
+                            messages.created_at,
+
+                            messages.updated_at
+
+                        FROM messages
+
+                        INNER JOIN businesses
+
+                            ON businesses.id =
+                                messages.business_id
+
+                        WHERE
+                            businesses.organization_id = ?
+
+                        ORDER BY
+                            messages.id DESC
+
+                        LIMIT 100
+                    `)
+                    .all(
+                        organizationId
+                    );
+
+
+            const normalizedMessages =
+                messages.map(
+                    (message) => ({
+
+                        /*
+                        Negative IDs keep message IDs
+                        separate from comment IDs in
+                        the current Inbox UI.
+                        */
+
+                        id:
+                            -Number(
+                                message.message_id
+                            ),
+
+                        record_id:
+                            Number(
+                                message.message_id
+                            ),
+
+                        record_type:
+                            "message",
+
+                        business_id:
+                            message.business_id,
+
+                        organization_id:
+                            message.organization_id,
+
+                        business_name:
+                            message.business_name,
+
+                        business_emoji:
+                            message.business_emoji,
+
+                        platform:
+                            message.platform,
+
+                        author:
+                            message.author,
+
+                        content:
+                            message.content,
+
+                        status:
+                            message.status,
+
+                        reply:
+                            message.reply,
+
+                        source:
+                            message.source,
+
+                        external_comment_id:
+                            message.external_message_id,
+
+                        rule:
+                            message.rule,
+
+                        confidence:
+                            message.confidence,
+
+                        processing_time:
+                            message.processing_time,
+
+                        estimated_cost:
+                            message.estimated_cost,
+
+                        created_at:
+                            message.created_at,
+
+                        updated_at:
+                            message.updated_at,
+
+                        reply_id:
+                            null,
+
+                        approved:
+                            message.status === "approved"
+                            ||
+                            message.status === "posted"
+                                ? 1
+                                : 0,
+
+                        posted:
+                            message.status === "posted"
+                                ? 1
+                                : 0
+
+                    })
+                );
+
+
+            const inboxItems =
+                [
+                    ...comments.map(
+                        (comment) => ({
+                            ...comment,
+                            record_type:
+                                "comment",
+                            record_id:
+                                comment.id
+                        })
+                    ),
+
+                    ...normalizedMessages
+                ]
+                    .sort(
+                        (first, second) => {
+
+                            const firstTime =
+                                new Date(
+                                    first.created_at
+                                ).getTime();
+
+                            const secondTime =
+                                new Date(
+                                    second.created_at
+                                ).getTime();
+
+
+                            return (
+                                secondTime -
+                                firstTime
+                            );
+
+                        }
+                    )
+                    .slice(
+                        0,
+                        100
+                    );
+
+
             res.json(
-                comments
+                inboxItems
             );
 
         }

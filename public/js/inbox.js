@@ -567,6 +567,26 @@ function renderCommentDetails(comment) {
                 ? "$0.0000"
                 : "Not available";
 
+
+    const isMessage =
+        comment.record_type ===
+        "message";
+
+
+    const platformLabel =
+        isMessage
+            ? "Facebook Messenger"
+            : formatPlatformName(
+                comment.platform
+            );
+
+
+    const incomingLabel =
+        isMessage
+            ? "Incoming Message"
+            : "Incoming Comment";
+
+
     detailsPanel.innerHTML = `
         <div class="panel-header">
 
@@ -610,9 +630,7 @@ function renderCommentDetails(comment) {
                     comment.platform
                 )}
                 ${escapeHtml(
-                    formatPlatformName(
-                        comment.platform
-                    )
+                    platformLabel
                 )}
             </div>
 
@@ -621,7 +639,9 @@ function renderCommentDetails(comment) {
         <div class="detail-section">
 
             <span class="detail-label">
-                Incoming Comment
+                ${escapeHtml(
+                    incomingLabel
+                )}
             </span>
 
             <div class="detail-value">
@@ -753,65 +773,85 @@ function renderCommentDetails(comment) {
 
         </div>
 
-        <div class="inbox-actions">
+        ${
+            isMessage
+                ? `
+                    <div class="detail-section">
 
-            <button
-                id="generate-inbox-reply"
-                class="inbox-button primary"
-                type="button"
-            >
-                Generate Reply
-            </button>
+                        <span class="detail-label">
+                            Messenger Status
+                        </span>
 
-            <button
-                id="save-inbox-reply"
-                class="inbox-button"
-                type="button"
-            >
-                Save Reply
-            </button>
+                        <div class="detail-value">
+                            Message received successfully.
+                            Automatic sending will be enabled
+                            after Meta approves pages_messaging.
+                        </div>
 
-            <button
-                id="approve-comment"
-                class="inbox-button"
-                type="button"
-            >
-                Approve
-            </button>
+                    </div>
+                `
+                : `
+                    <div class="inbox-actions">
 
-            <button
-                id="mark-posted"
-                class="inbox-button"
-                type="button"
-            >
-                Post Reply
-            </button>
+                        <button
+                            id="generate-inbox-reply"
+                            class="inbox-button primary"
+                            type="button"
+                        >
+                            Generate Reply
+                        </button>
 
-            <button
-                id="ignore-comment"
-                class="inbox-button"
-                type="button"
-            >
-                Ignore
-            </button>
+                        <button
+                            id="save-inbox-reply"
+                            class="inbox-button"
+                            type="button"
+                        >
+                            Save Reply
+                        </button>
 
-            <button
-                id="return-pending"
-                class="inbox-button"
-                type="button"
-            >
-                Return to Pending
-            </button>
+                        <button
+                            id="approve-comment"
+                            class="inbox-button"
+                            type="button"
+                        >
+                            Approve
+                        </button>
 
-            <button
-                id="delete-comment"
-                class="inbox-button danger"
-                type="button"
-            >
-                Delete
-            </button>
+                        <button
+                            id="mark-posted"
+                            class="inbox-button"
+                            type="button"
+                        >
+                            Post Reply
+                        </button>
 
-        </div>
+                        <button
+                            id="ignore-comment"
+                            class="inbox-button"
+                            type="button"
+                        >
+                            Ignore
+                        </button>
+
+                        <button
+                            id="return-pending"
+                            class="inbox-button"
+                            type="button"
+                        >
+                            Return to Pending
+                        </button>
+
+                        <button
+                            id="delete-comment"
+                            class="inbox-button danger"
+                            type="button"
+                        >
+                            Delete
+                        </button>
+
+                    </div>
+                `
+        }
     `;
 
     attachDetailEvents(

@@ -13,6 +13,12 @@ const {
 
 
 const {
+    generateReply
+} =
+    require("../services/openai");
+
+
+const {
     generateAutomaticReply,
     getPageAccessToken,
     getAutomationSettings
@@ -733,13 +739,16 @@ router.post(
                             );
 
 
+                    const localMessageId =
+                        Number(
+                            result.lastInsertRowid
+                        );
+
+
                     console.log(
                         "✅ Facebook Messenger message added:",
                         {
-                            localMessageId:
-                                Number(
-                                    result.lastInsertRowid
-                                ),
+                            localMessageId,
 
                             businessId:
                                 socialAccount.business_id,
@@ -757,6 +766,203 @@ router.post(
                                 content
                         }
                     );
+
+
+                    /*
+                    ========================================
+                    FACEBOOK MESSENGER AUTOMATIC REPLY
+                    ========================================
+                    */
+
+                    const automation =
+                        getAutomationSettings(
+                            socialAccount.organization_id,
+                            socialAccount.business_id
+                        );
+
+
+                    if (
+                        automation.autoGenerate
+                    ) {
+
+                        try {
+
+                            const reply =
+                                await generateReply(
+                                    socialAccount.prompt,
+                                    content
+                                );
+
+
+                            database
+                                .prepare(`
+                                    UPDATE messages
+
+                                    SET
+                                        reply = ?,
+                                        status = ?,
+                                        source = 'GPT',
+                                        updated_at = CURRENT_TIMESTAMP
+
+                                    WHERE id = ?
+                                `)
+                                .run(
+                                    reply,
+                                    automation.requireApproval
+                                        ? 'replied'
+                                        : 'approved',
+                                    localMessageId
+                                );
+
+
+                            console.log(
+                                `🤖 Messenger reply generated for message ${localMessageId}`
+                            );
+
+
+                            if (
+                                automation.autoPost
+                                &&
+                                !automation.requireApproval
+                            ) {
+
+                                const connection =
+                                    database
+                                        .prepare(`
+                                            SELECT access_token_encrypted
+
+                                            FROM social_oauth_connections
+
+                                            WHERE
+                                                organization_id = ?
+                                                AND provider = 'meta'
+                                                AND access_token_encrypted != ''
+
+                                            LIMIT 1
+                                        `)
+                                        .get(
+                                            socialAccount.organization_id
+                                        );
+
+
+                                if (!connection) {
+
+                                    throw new Error(
+                                        "Meta connection not found."
+                                    );
+
+                                }
+
+
+                                const organizationAccessToken =
+                                    decryptToken(
+                                        connection.access_token_encrypted
+                                    );
+
+
+                                const page =
+                                    await getPageAccessToken(
+                                        pageId,
+                                        organizationAccessToken
+                                    );
+
+
+                                if (!page) {
+
+                                    throw new Error(
+                                        "Facebook Page access token not available."
+                                    );
+
+                                }
+
+
+                                const response =
+                                    await fetch(
+                                        "https://graph.facebook.com/v26.0/me/messages",
+                                        {
+                                            method:
+                                                "POST",
+
+                                            headers: {
+                                                "Content-Type":
+                                                    "application/json",
+
+                                                Accept:
+                                                    "application/json"
+                                            },
+
+                                            body:
+                                                JSON.stringify({
+                                                    recipient: {
+                                                        id:
+                                                            senderId
+                                                    },
+
+                                                    messaging_type:
+                                                        "RESPONSE",
+
+                                                    message: {
+                                                        text:
+                                                            reply
+                                                    },
+
+                                                    access_token:
+                                                        page.accessToken
+                                                })
+                                        }
+                                    );
+
+
+                                const data =
+                                    await response.json();
+
+
+                                if (
+                                    !response.ok
+                                    ||
+                                    !data.message_id
+                                ) {
+
+                                    throw new Error(
+                                        data?.error?.message ||
+                                        "Facebook rejected the Messenger reply."
+                                    );
+
+                                }
+
+
+                                database
+                                    .prepare(`
+                                        UPDATE messages
+
+                                        SET
+                                            status = 'posted',
+                                            updated_at = CURRENT_TIMESTAMP
+
+                                        WHERE id = ?
+                                    `)
+                                    .run(
+                                        localMessageId
+                                    );
+
+
+                                console.log(
+                                    `🚀 Messenger reply auto-posted for message ${localMessageId}`
+                                );
+
+                            }
+
+                        }
+                        catch (error) {
+
+                            console.error(
+                                `Messenger automatic reply failed for message ${localMessageId}:`,
+                                error
+                            );
+
+                        }
+
+                    }
 
                 }
 

@@ -970,7 +970,8 @@ router.get(
                     [
                         "id",
                         "name",
-                        "instagram_business_account{id,username}"
+                        "instagram_business_account{id,username}",
+                        "connected_instagram_account{id,username}"
                     ].join(",")
                 );
 
@@ -1039,9 +1040,12 @@ router.get(
 
                             const instagram =
                                 page
-                                    .instagram_business_account;
+                                    .instagram_business_account
+                                ||
+                                page
+                                    .connected_instagram_account;
 
-
+                                    
                             return {
 
                                 id:
@@ -1827,6 +1831,217 @@ router.post(
                 .json({
                     error:
                         "Unable to assign Facebook Page.",
+
+                    details:
+                        error.message
+                });
+
+        }
+
+    }
+);
+
+/*
+====================================================
+POST /api/meta/assign-instagram
+====================================================
+*/
+
+router.post(
+    "/meta/assign-instagram",
+    authMiddleware,
+    async (req, res) => {
+
+        try {
+
+            const organizationId =
+                Number(
+                    req.organizationId
+                );
+
+
+            const businessId =
+                Number(
+                    req.body?.businessId
+                );
+
+
+            const instagramAccountId =
+                String(
+                    req.body?.instagramAccountId ||
+                    ""
+                ).trim();
+
+
+            const username =
+                String(
+                    req.body?.username ||
+                    ""
+                ).trim();
+
+
+            if (
+                !Number.isInteger(
+                    organizationId
+                )
+                ||
+                organizationId <= 0
+            ) {
+
+                return res
+                    .status(401)
+                    .json({
+                        error:
+                            "Authentication required."
+                    });
+
+            }
+
+
+            if (
+                !Number.isInteger(
+                    businessId
+                )
+                ||
+                businessId <= 0
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Business ID is required."
+                    });
+
+            }
+
+
+            if (!instagramAccountId) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Instagram account ID is required."
+                    });
+
+            }
+
+
+            const business =
+                database
+                    .prepare(`
+                        SELECT
+                            id,
+                            name
+
+                        FROM businesses
+
+                        WHERE
+                            id = ?
+                            AND organization_id = ?
+                    `)
+                    .get(
+                        businessId,
+                        organizationId
+                    );
+
+
+            if (!business) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Business not found."
+                    });
+
+            }
+
+
+            const account =
+                database
+                    .prepare(`
+                        SELECT
+                            id
+
+                        FROM social_accounts
+
+                        WHERE
+                            business_id = ?
+                            AND platform = 'instagram'
+                    `)
+                    .get(
+                        businessId
+                    );
+
+
+            if (!account) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Instagram social account record not found."
+                    });
+
+            }
+
+
+            database
+                .prepare(`
+                    UPDATE social_accounts
+
+                    SET
+                        account_name = ?,
+                        external_account_id = ?,
+                        connected = 1,
+                        updated_at = CURRENT_TIMESTAMP
+
+                    WHERE
+                        id = ?
+                `)
+                .run(
+                    username,
+                    instagramAccountId,
+                    account.id
+                );
+
+
+            return res.json({
+
+                success:
+                    true,
+
+                businessId,
+
+                business:
+                    business.name,
+
+                instagram: {
+                    id:
+                        instagramAccountId,
+
+                    username:
+                        username
+                }
+
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Instagram assignment error:",
+                error
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "Unable to assign Instagram account.",
 
                     details:
                         error.message

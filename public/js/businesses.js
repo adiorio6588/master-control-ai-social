@@ -1322,17 +1322,16 @@ async function handleMetaReturn() {
     ====================================================
     */
 
-    if (
+   if (
         platform ===
         "instagram"
     ) {
 
-        window.alert(
-            "Meta connected successfully. Instagram account assignment will be added next."
+        await openMetaInstagramAssignment(
+            businessId
         );
 
-
-        cleanMetaUrl();
+        return;
 
     }
 
@@ -1531,6 +1530,127 @@ async function openMetaPageAssignment(
 
 }
 
+async function openMetaInstagramAssignment(
+    businessId
+) {
+
+    const business =
+        businesses.find(
+            (item) =>
+                Number(
+                    item.id
+                ) ===
+                Number(
+                    businessId
+                )
+        );
+
+
+    if (!business) {
+
+        window.alert(
+            "The business could not be found."
+        );
+
+        cleanMetaUrl();
+
+        return;
+
+    }
+
+
+    try {
+
+        const result =
+            await MasterControlAPI
+                .getMetaAssets();
+
+
+        const pages =
+            Array.isArray(
+                result.pages
+            )
+                ? result.pages
+                : [];
+
+
+        const instagramAccounts =
+            pages
+                .filter(
+                    (page) =>
+                        page.instagram
+                        &&
+                        page.instagram.id
+                )
+                .map(
+                    (page) => ({
+                        id:
+                            page.instagram.id,
+
+                        username:
+                            page.instagram.username ||
+                            "",
+
+                        pageName:
+                            page.name ||
+                            ""
+                    })
+                );
+
+
+        if (!instagramAccounts.length) {
+
+            window.alert(
+                "Meta connected successfully, but no Instagram professional account was found."
+            );
+
+            cleanMetaUrl();
+
+            return;
+
+        }
+
+
+        const instagram =
+            instagramAccounts[0];
+
+
+        await MasterControlAPI
+            .assignMetaInstagram(
+                business.id,
+                instagram.id,
+                instagram.username
+            );
+
+
+        sessionStorage
+            .removeItem(
+                "masterControlMetaConnection"
+            );
+
+
+        await loadBusinesses();
+
+
+        cleanMetaUrl();
+
+    }
+    catch (error) {
+
+        console.error(
+            "Instagram assignment error:",
+            error
+        );
+
+
+        window.alert(
+            error.message ||
+            "Unable to connect Instagram account."
+        );
+
+    }
+
+}
 
 /*
 ====================================================

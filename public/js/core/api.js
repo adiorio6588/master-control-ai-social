@@ -690,6 +690,29 @@ window.MasterControlAPI = (() => {
 
     }
 
+    function assignMetaInstagram(
+        businessId,
+        instagramAccountId,
+        username
+    ) {
+    
+        return request(
+            "/api/meta/assign-instagram",
+            {
+                method:
+                    "POST",
+    
+                body:
+                    JSON.stringify({
+                        businessId,
+                        instagramAccountId,
+                        username
+                    })
+            }
+        );
+    
+    }
+
     function syncMetaComments(
         pageId
     ) {
@@ -753,6 +776,7 @@ window.MasterControlAPI = (() => {
         getMetaPageComments,
         syncMetaComments,
         subscribeMetaPage,
+        assignMetaInstagram,
         assignMetaPage
 
     };

@@ -213,6 +213,467 @@ router.post(
                 if (!instagramAccountId) {
                     continue;
                 }
+
+                /*
+                ====================================================
+                INSTAGRAM DIRECT MESSAGES
+                ====================================================
+                */
+
+                const socialAccount =
+                database
+                    .prepare(`
+                        SELECT
+                            social_accounts.id,
+                            social_accounts.business_id,
+                            social_accounts.account_name,
+                            social_accounts.external_account_id,
+                            social_accounts.connected,
+                            businesses.name AS business_name,
+                            businesses.organization_id,
+                            businesses.prompt
+
+                        FROM social_accounts
+
+                        INNER JOIN businesses
+                            ON businesses.id =
+                                social_accounts.business_id
+
+                        WHERE
+                            social_accounts.platform = 'instagram'
+                            AND social_accounts.external_account_id = ?
+                            AND social_accounts.connected = 1
+                    `)
+                    .get(
+                        instagramAccountId
+                    );
+
+
+                const messagingEvents =
+                Array.isArray(
+                    entry.messaging
+                )
+                    ? entry.messaging
+                    : [];
+
+
+                for (
+                const event of messagingEvents
+                ) {
+
+                if (!socialAccount) {
+
+                    console.log(
+                        "Instagram DM ignored — account is not assigned:",
+                        {
+                            instagramAccountId
+                        }
+                    );
+
+                    continue;
+
+                }
+
+
+                const senderId =
+                    String(
+                        event?.sender?.id ||
+                        ""
+                    ).trim();
+
+
+                const message =
+                    event?.message ||
+                    {};
+
+
+                const externalMessageId =
+                    String(
+                        message.mid ||
+                        ""
+                    ).trim();
+
+
+                const content =
+                    String(
+                        message.text ||
+                        ""
+                    ).trim();
+
+
+                if (
+                    message.is_echo
+                    ||
+                    senderId === instagramAccountId
+                ) {
+
+                    continue;
+
+                }
+
+
+                if (
+                    !senderId
+                    ||
+                    !externalMessageId
+                    ||
+                    !content
+                ) {
+
+                    continue;
+
+                }
+
+
+                const existingMessage =
+                    database
+                        .prepare(`
+                            SELECT id
+
+                            FROM messages
+
+                            WHERE
+                                platform = 'instagram'
+                                AND external_message_id = ?
+                        `)
+                        .get(
+                            externalMessageId
+                        );
+
+
+                if (existingMessage) {
+
+                    continue;
+
+                }
+
+
+                let createdAt =
+                    new Date()
+                        .toISOString();
+
+
+                const timestamp =
+                    Number(
+                        event.timestamp
+                    );
+
+
+                if (
+                    Number.isFinite(timestamp)
+                    &&
+                    timestamp > 0
+                ) {
+
+                    createdAt =
+                        new Date(
+                            timestamp
+                        )
+                            .toISOString();
+
+                }
+
+
+                const result =
+                    database
+                        .prepare(`
+                            INSERT INTO messages (
+                                business_id,
+                                platform,
+                                sender_id,
+                                sender_name,
+                                content,
+                                external_message_id,
+                                conversation_id,
+                                direction,
+                                status,
+                                source,
+                                created_at
+                            )
+
+                            VALUES (
+                                ?,
+                                'instagram',
+                                ?,
+                                'Instagram User',
+                                ?,
+                                ?,
+                                ?,
+                                'incoming',
+                                'pending',
+                                'meta',
+                                ?
+                            )
+                        `)
+                        .run(
+                            socialAccount.business_id,
+                            senderId,
+                            content,
+                            externalMessageId,
+                            senderId,
+                            createdAt
+                        );
+
+
+                const localMessageId =
+                    Number(
+                        result.lastInsertRowid
+                    );
+
+
+                console.log(
+                    "✅ Instagram DM added:",
+                    {
+                        localMessageId,
+
+                        businessId:
+                            socialAccount.business_id,
+
+                        business:
+                            socialAccount.business_name,
+
+                        instagramAccountId,
+
+                        senderId,
+
+                        externalMessageId,
+
+                        message:
+                            content
+                    }
+                );
+
+                    /*
+                    ====================================================
+                    INSTAGRAM DM AUTOMATIC REPLY GENERATION
+                    ====================================================
+                    */
+
+                    const automation =
+                        getAutomationSettings(
+                            socialAccount.organization_id,
+                            socialAccount.business_id
+                        );
+
+
+                    if (
+                        automation.autoGenerate
+                    ) {
+
+                        try {
+
+                            const reply =
+                                await generateReply(
+                                    socialAccount.prompt,
+                                    content
+                                );
+
+
+                            database
+                                .prepare(`
+                                    UPDATE messages
+
+                                    SET
+                                        reply = ?,
+                                        status = ?,
+                                        source = 'GPT',
+                                        updated_at = CURRENT_TIMESTAMP
+
+                                    WHERE id = ?
+                                `)
+                                .run(
+                                    reply,
+                                    automation.requireApproval
+                                        ? 'replied'
+                                        : 'approved',
+                                    localMessageId
+                                );
+
+
+                            console.log(
+                                `🤖 Instagram DM reply generated for message ${localMessageId}`
+                            );
+
+                            if (
+                                automation.autoPost
+                                &&
+                                !automation.requireApproval
+                            ) {
+
+                                const connection =
+                                    database
+                                        .prepare(`
+                                            SELECT access_token_encrypted
+
+                                            FROM social_oauth_connections
+
+                                            WHERE
+                                                organization_id = ?
+                                                AND provider = 'meta'
+                                                AND access_token_encrypted != ''
+
+                                            LIMIT 1
+                                        `)
+                                        .get(
+                                            socialAccount.organization_id
+                                        );
+
+
+                                if (!connection) {
+
+                                    throw new Error(
+                                        "Meta connection not found."
+                                    );
+
+                                }
+
+
+                                const organizationAccessToken =
+                                    decryptToken(
+                                        connection.access_token_encrypted
+                                    );
+
+
+                                const facebookAccount =
+                                    database
+                                        .prepare(`
+                                            SELECT external_account_id
+
+                                            FROM social_accounts
+
+                                            WHERE
+                                                business_id = ?
+                                                AND platform = 'facebook'
+                                                AND connected = 1
+
+                                            LIMIT 1
+                                        `)
+                                        .get(
+                                            socialAccount.business_id
+                                        );
+
+
+                                if (
+                                    !facebookAccount
+                                    ||
+                                    !facebookAccount.external_account_id
+                                ) {
+
+                                    throw new Error(
+                                        "Connected Facebook Page not found for Instagram account."
+                                    );
+
+                                }
+
+
+                                const page =
+                                    await getPageAccessToken(
+                                        facebookAccount.external_account_id,
+                                        organizationAccessToken
+                                    );
+
+
+                                if (!page) {
+
+                                    throw new Error(
+                                        "Facebook Page access token not available for Instagram messaging."
+                                    );
+
+                                }
+
+
+                                const response =
+                                    await fetch(
+                                        `https://graph.facebook.com/v26.0/${encodeURIComponent(
+                                            facebookAccount.external_account_id
+                                        )}/messages`,
+                                        {
+                                            method:
+                                                "POST",
+
+                                            headers: {
+                                                "Content-Type":
+                                                    "application/json",
+
+                                                Accept:
+                                                    "application/json"
+                                            },
+
+                                            body:
+                                                JSON.stringify({
+                                                    recipient: {
+                                                        id:
+                                                            senderId
+                                                    },
+
+                                                    messaging_type:
+                                                        "RESPONSE",
+
+                                                    message: {
+                                                        text:
+                                                            reply
+                                                    },
+
+                                                    access_token:
+                                                        page.accessToken
+                                                })
+                                        }
+                                    );
+
+
+                                const data =
+                                    await response.json();
+
+
+                                if (
+                                    !response.ok
+                                    ||
+                                    !data.message_id
+                                ) {
+
+                                    throw new Error(
+                                        data?.error?.message ||
+                                        "Instagram rejected the DM reply."
+                                    );
+
+                                }
+
+
+                                database
+                                    .prepare(`
+                                        UPDATE messages
+
+                                        SET
+                                            status = 'posted',
+                                            updated_at = CURRENT_TIMESTAMP
+
+                                        WHERE id = ?
+                                    `)
+                                    .run(
+                                        localMessageId
+                                    );
+
+
+                                console.log(
+                                    `🚀 Instagram DM reply auto-posted for message ${localMessageId}`
+                                );
+
+                            }
+
+                        }
+                        catch (error) {
+
+                            console.error(
+                                `Instagram DM reply generation failed for message ${localMessageId}:`,
+                                error
+                            );
+
+                        }
+
+                    }
+
+
+                }
         
         
                 const changes =

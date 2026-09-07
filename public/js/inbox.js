@@ -424,7 +424,9 @@ function renderComments() {
 
             const listPlatformLabel =
                 comment.record_type === "message"
-                    ? "Messenger"
+                    ? comment.platform === "instagram"
+                        ? "Instagram Messenger"
+                        : "Facebook Messenger"
                     : comment.platform === "facebook"
                         ? "Facebook Comment"
                         : formatPlatformName(
@@ -584,7 +586,9 @@ function renderCommentDetails(comment) {
 
     const platformLabel =
         isMessage
-            ? "Facebook Messenger"
+            ? comment.platform === "instagram"
+                ? "Instagram Messenger"
+                : "Facebook Messenger"
             : formatPlatformName(
                 comment.platform
             );
@@ -793,8 +797,8 @@ function renderCommentDetails(comment) {
 
                         <div class="detail-value">
                             Message received successfully.
-                            Automatic sending will be enabled
-                            after Meta approves pages_messaging.
+                            AI reply processing is active for this
+                            connected messaging account.
                         </div>
 
                     </div>

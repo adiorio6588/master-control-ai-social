@@ -802,6 +802,26 @@ function renderCommentDetails(comment) {
                         </div>
 
                     </div>
+
+                    <div class="inbox-actions">
+
+                        <button
+                            id="approve-comment"
+                            class="inbox-button"
+                            type="button"
+                        >
+                            Approve
+                        </button>
+
+                        <button
+                            id="mark-posted"
+                            class="inbox-button primary"
+                            type="button"
+                        >
+                            Post Reply
+                        </button>
+
+                    </div>
                 `
                 : `
                     <div class="inbox-actions">
@@ -1070,7 +1090,55 @@ function attachDetailEvents(comment) {
     if (approveButton) {
         approveButton.addEventListener(
             "click",
-            () => {
+            async () => {
+
+                if (
+                    comment.record_type ===
+                    "message"
+                ) {
+
+                    approveButton.disabled =
+                        true;
+
+                    approveButton.textContent =
+                        "Approving...";
+
+                    try {
+
+                        await MasterControlAPI
+                            .approveMessage(
+                                comment.record_id
+                            );
+
+                        selectedCommentId =
+                            comment.id;
+
+                        await loadComments();
+
+                    }
+                    catch (error) {
+
+                        console.error(
+                            "Approve message error:",
+                            error
+                        );
+
+                        window.alert(
+                            error.message ||
+                            "Unable to approve message reply."
+                        );
+
+                        approveButton.disabled =
+                            false;
+
+                        approveButton.textContent =
+                            "Approve";
+
+                    }
+
+                    return;
+                }
+
                 updateCommentStatus(
                     comment.id,
                     "approved"
@@ -1094,10 +1162,25 @@ function attachDetailEvents(comment) {
     
                 try {
     
-                    await MasterControlAPI
-                        .postReply(
-                            comment.id
-                        );
+                    if (
+                        comment.record_type ===
+                        "message"
+                    ) {
+
+                        await MasterControlAPI
+                            .postMessageReply(
+                                comment.record_id
+                            );
+
+                    }
+                    else {
+
+                        await MasterControlAPI
+                            .postReply(
+                                comment.id
+                            );
+
+                    }
     
     
                     selectedCommentId =

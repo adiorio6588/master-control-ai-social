@@ -55,6 +55,9 @@ const businessRoutes =
 const commentsRoutes =
     require("./routes/comments");
 
+const messagesRoutes =
+    require("./routes/messages");
+
 const historyRoutes =
     require("./routes/history");
 
@@ -235,6 +238,12 @@ app.use(
 app.use(
     "/api",
     commentsRoutes
+);
+
+
+app.use(
+    "/api",
+    messagesRoutes
 );
 
 

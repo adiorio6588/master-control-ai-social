@@ -434,6 +434,36 @@ window.MasterControlAPI = (() => {
     }
 
 
+    function approveMessage(
+        messageId
+    ) {
+
+        return request(
+            `/api/messages/${messageId}/approve`,
+            {
+                method:
+                    "POST"
+            }
+        );
+
+    }
+
+
+    function postMessageReply(
+        messageId
+    ) {
+
+        return request(
+            `/api/messages/${messageId}/post`,
+            {
+                method:
+                    "POST"
+            }
+        );
+
+    }
+
+
     /*
     ====================================================
     AI
@@ -757,6 +787,8 @@ window.MasterControlAPI = (() => {
         updateCommentStatus,
         saveReply,
         postReply,
+        approveMessage,
+        postMessageReply,
 
         generateReply,
 

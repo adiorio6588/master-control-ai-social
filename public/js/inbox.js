@@ -806,6 +806,14 @@ function renderCommentDetails(comment) {
                     <div class="inbox-actions">
 
                         <button
+                            id="save-inbox-reply"
+                            class="inbox-button"
+                            type="button"
+                        >
+                            Save Reply
+                        </button>
+
+                        <button
                             id="approve-comment"
                             class="inbox-button"
                             type="button"
@@ -1079,7 +1087,79 @@ function attachDetailEvents(comment) {
     if (saveButton) {
         saveButton.addEventListener(
             "click",
-            () => {
+            async () => {
+
+                if (
+                    comment.record_type ===
+                    "message"
+                ) {
+
+                    const replyEditor =
+                        document.getElementById(
+                            "inbox-reply-editor"
+                        );
+
+                    if (!replyEditor) {
+                        return;
+                    }
+
+                    const reply =
+                        replyEditor.value.trim();
+
+                    if (!reply) {
+
+                        window.alert(
+                            "Enter a reply before saving."
+                        );
+
+                        return;
+                    }
+
+
+                    saveButton.disabled =
+                        true;
+
+                    saveButton.textContent =
+                        "Saving...";
+
+
+                    try {
+
+                        await MasterControlAPI
+                            .saveMessageReply(
+                                comment.record_id,
+                                reply
+                            );
+
+                        selectedCommentId =
+                            comment.id;
+
+                        await loadComments();
+
+                    }
+                    catch (error) {
+
+                        console.error(
+                            "Save message reply error:",
+                            error
+                        );
+
+                        window.alert(
+                            error.message ||
+                            "Unable to save message reply."
+                        );
+
+                        saveButton.disabled =
+                            false;
+
+                        saveButton.textContent =
+                            "Save Reply";
+
+                    }
+
+                    return;
+                }
+
                 saveReplyForComment(
                     comment.id
                 );

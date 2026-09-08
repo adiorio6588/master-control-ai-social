@@ -449,6 +449,27 @@ window.MasterControlAPI = (() => {
     }
 
 
+    function saveMessageReply(
+        messageId,
+        reply
+    ) {
+
+        return request(
+            `/api/messages/${messageId}/reply`,
+            {
+                method:
+                    "POST",
+
+                body:
+                    JSON.stringify({
+                        reply
+                    })
+            }
+        );
+
+    }
+
+
     function postMessageReply(
         messageId
     ) {
@@ -788,6 +809,7 @@ window.MasterControlAPI = (() => {
         saveReply,
         postReply,
         approveMessage,
+        saveMessageReply,
         postMessageReply,
 
         generateReply,

@@ -81,6 +81,145 @@ function getMessage(
 
 /*
 ====================================================
+POST /api/messages/:id/reply
+====================================================
+*/
+
+router.post(
+    "/messages/:id/reply",
+    (req, res) => {
+
+        try {
+
+            const organizationId =
+                getCurrentOrganizationId(req);
+
+            const messageId =
+                Number(req.params.id);
+
+            const reply =
+                typeof req.body.reply ===
+                    "string"
+                    ? req.body.reply.trim()
+                    : "";
+
+
+            if (
+                !organizationId
+                ||
+                !Number.isInteger(messageId)
+                ||
+                messageId <= 0
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "A valid message ID is required."
+                    });
+
+            }
+
+
+            if (!reply) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "Reply text is required."
+                    });
+
+            }
+
+
+            const message =
+                getMessage(
+                    messageId,
+                    organizationId
+                );
+
+
+            if (!message) {
+
+                return res
+                    .status(404)
+                    .json({
+                        error:
+                            "Message not found."
+                    });
+
+            }
+
+
+            if (
+                message.status ===
+                "posted"
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "This message reply has already been posted."
+                    });
+
+            }
+
+
+            database
+                .prepare(`
+                    UPDATE messages
+
+                    SET
+                        reply = ?,
+                        status = 'replied',
+                        updated_at = CURRENT_TIMESTAMP
+
+                    WHERE id = ?
+                `)
+                .run(
+                    reply,
+                    messageId
+                );
+
+
+            return res.json({
+                success: true,
+                messageId,
+                reply,
+                status:
+                    "replied"
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Message reply save failed:",
+                error
+            );
+
+
+            return res
+                .status(500)
+                .json({
+                    error:
+                        "Unable to save message reply.",
+
+                    details:
+                        error.message
+                });
+
+        }
+
+    }
+);
+
+
+/*
+====================================================
 POST /api/messages/:id/approve
 ====================================================
 */

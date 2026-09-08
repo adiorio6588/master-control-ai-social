@@ -780,6 +780,7 @@ function renderCommentDetails(comment) {
                 id="inbox-reply-editor"
                 class="detail-value detail-reply reply-editor"
                 placeholder="Generate or write a reply..."
+                ${status === "posted" ? "readonly" : ""}
             >${escapeHtml(
                 comment.reply || ""
             )}</textarea>
@@ -809,6 +810,11 @@ function renderCommentDetails(comment) {
                             id="save-inbox-reply"
                             class="inbox-button"
                             type="button"
+                            ${
+                                status === "posted"
+                                    ? "disabled"
+                                    : ""
+                            }
                         >
                             Save Reply
                         </button>
@@ -817,16 +823,36 @@ function renderCommentDetails(comment) {
                             id="approve-comment"
                             class="inbox-button"
                             type="button"
+                            ${
+                                status === "approved" ||
+                                status === "posted"
+                                    ? "disabled"
+                                    : ""
+                            }
                         >
-                            Approve
+                            ${
+                                status === "approved" ||
+                                status === "posted"
+                                    ? "Approved"
+                                    : "Approve"
+                            }
                         </button>
 
                         <button
                             id="mark-posted"
                             class="inbox-button primary"
                             type="button"
+                            ${
+                                status !== "approved"
+                                    ? "disabled"
+                                    : ""
+                            }
                         >
-                            Post Reply
+                            ${
+                                status === "posted"
+                                    ? "Posted"
+                                    : "Post Reply"
+                            }
                         </button>
 
                     </div>

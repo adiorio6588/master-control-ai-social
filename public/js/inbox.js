@@ -681,6 +681,41 @@ RENDER COMMENT DETAILS
 ====================================================
 */
 
+function formatConversationTime(
+    value
+) {
+
+    if (!value) {
+        return "";
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return "";
+    }
+
+
+    return date.toLocaleString(
+        [],
+        {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit"
+        }
+    );
+
+}
+
+
 function renderMessageConversation(
     message
 ) {
@@ -732,6 +767,14 @@ function renderMessageConversation(
                                     )}
                                 </div>
 
+                                <small class="message-time">
+                                    ${escapeHtml(
+                                        formatConversationTime(
+                                            item.created_at
+                                        )
+                                    )}
+                                </small>
+
                             </div>
 
                             ${
@@ -750,6 +793,15 @@ function renderMessageConversation(
                                                     item.reply
                                                 )}
                                             </div>
+
+                                            <small class="message-time">
+                                                ${escapeHtml(
+                                                    formatConversationTime(
+                                                        item.updated_at ||
+                                                        item.created_at
+                                                    )
+                                                )}
+                                            </small>
 
                                         </div>
                                     `

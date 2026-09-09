@@ -1050,3 +1050,22 @@ MESSENGER CONVERSATION THREAD
     }
 }
 
+
+/* Messenger conversation timestamps */
+
+.message-time {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+}
+
+.customer-message .message-time {
+    align-self: flex-start;
+}
+
+.business-message .message-time {
+    align-self: flex-end;
+    text-align: right;
+}
+

@@ -738,7 +738,10 @@ function renderMessageConversation(
                 Conversation
             </span>
 
-            <div class="message-thread">
+            <div
+                id="message-conversation-thread"
+                class="message-thread"
+            >
 
                 ${thread.map(
                     (item) => {
@@ -1219,6 +1222,30 @@ function renderCommentDetails(comment) {
     attachDetailEvents(
         comment
     );
+
+
+    if (isMessage) {
+
+        setTimeout(
+            () => {
+
+                const messageThread =
+                    document.getElementById(
+                        "message-conversation-thread"
+                    );
+
+                if (!messageThread) {
+                    return;
+                }
+
+                messageThread.scrollTop =
+                    999999999;
+
+            },
+            150
+        );
+
+    }
 }
 
 

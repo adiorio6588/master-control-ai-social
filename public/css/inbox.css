@@ -1069,3 +1069,225 @@ MESSENGER CONVERSATION THREAD
     text-align: right;
 }
 
+
+/* ====================================================
+   SCROLLABLE SOCIAL INBOX
+   ==================================================== */
+
+.comment-list {
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+}
+
+.comment-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.comment-list::-webkit-scrollbar-track {
+    background: #08090a;
+}
+
+.comment-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 75, 11, 0.45);
+    border-radius: 999px;
+}
+
+.comment-list::-webkit-scrollbar-thumb:hover {
+    background: var(--orange);
+}
+
+
+/* Keep Messenger conversation in its own scroll area */
+
+.message-thread {
+    height: 560px;
+    max-height: 560px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+}
+
+@media (max-width: 1050px) {
+
+    .comment-list {
+        max-height: 520px;
+    }
+
+    .message-thread {
+        height: 480px;
+        max-height: 480px;
+    }
+
+}
+
+
+/* ====================================================
+   POLISH MESSENGER SCROLL AREA
+   ==================================================== */
+
+.message-thread {
+    position: relative;
+    height: 560px;
+    max-height: 560px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding: 12px 10px 18px 0;
+
+    background: transparent;
+    border: 0;
+
+    scrollbar-width: thin;
+    scrollbar-color:
+        rgba(255, 75, 11, 0.28)
+        transparent;
+
+    -webkit-mask-image:
+        linear-gradient(
+            to bottom,
+            transparent 0,
+            black 20px,
+            black calc(100% - 20px),
+            transparent 100%
+        );
+
+    mask-image:
+        linear-gradient(
+            to bottom,
+            transparent 0,
+            black 20px,
+            black calc(100% - 20px),
+            transparent 100%
+        );
+}
+
+.message-thread::-webkit-scrollbar {
+    width: 4px;
+}
+
+.message-thread::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.message-thread::-webkit-scrollbar-thumb {
+    background: rgba(255, 75, 11, 0.28);
+    border-radius: 999px;
+}
+
+.message-thread::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 75, 11, 0.55);
+}
+
+.message-thread-item:first-child {
+    margin-top: 8px;
+}
+
+.message-thread-item:last-child {
+    margin-bottom: 8px;
+}
+
+@media (max-width: 1050px) {
+    .message-thread {
+        height: 480px;
+        max-height: 480px;
+    }
+}
+
+/* ====================================================
+   FINAL MESSENGER SCROLL POLISH
+   ==================================================== */
+
+.message-thread {
+    -webkit-mask-image: none;
+    mask-image: none;
+
+    padding-top: 6px;
+    padding-bottom: 14px;
+
+    scrollbar-width: thin;
+    scrollbar-color:
+        rgba(255, 75, 11, 0.22)
+        transparent;
+}
+
+.message-thread::-webkit-scrollbar {
+    width: 4px;
+}
+
+.message-thread::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.message-thread::-webkit-scrollbar-thumb {
+    background: rgba(255, 75, 11, 0.22);
+    border-radius: 999px;
+}
+
+.message-thread::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 75, 11, 0.45);
+}
+
+
+/* ====================================================
+   CONVERSATION VIEWPORT EDGE POLISH
+   ==================================================== */
+
+.message-thread {
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+.message-thread::before {
+    content: "";
+    display: block;
+    height: 2px;
+    flex: 0 0 2px;
+}
+
+
+/* ====================================================
+   CONVERSATION SCROLL EDGE
+   ==================================================== */
+
+.message-thread {
+    border-top: 1px solid rgba(255, 75, 11, 0.35);
+
+    -webkit-mask-image:
+        linear-gradient(
+            to bottom,
+            transparent 0,
+            black 10px,
+            black 100%
+        );
+
+    mask-image:
+        linear-gradient(
+            to bottom,
+            transparent 0,
+            black 10px,
+            black 100%
+        );
+}
+
+
+/* Stronger conversation scroll fade */
+.message-thread {
+    -webkit-mask-image:
+        linear-gradient(
+            to bottom,
+            transparent 0,
+            black 24px,
+            black 100%
+        );
+
+    mask-image:
+        linear-gradient(
+            to bottom,
+            transparent 0,
+            black 24px,
+            black 100%
+        );
+}
+

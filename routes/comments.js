@@ -326,6 +326,10 @@ router.get(
 
                             messages.external_message_id,
 
+                            messages.conversation_id,
+
+                            messages.sender_id,
+
                             messages.rule,
 
                             messages.confidence,
@@ -413,6 +417,12 @@ router.get(
 
                         external_comment_id:
                             message.external_message_id,
+
+                        conversation_id:
+                            message.conversation_id,
+
+                        sender_id:
+                            message.sender_id,
 
                         rule:
                             message.rule,

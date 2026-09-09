@@ -318,6 +318,93 @@ function getVisibleComments() {
 
 /*
 ====================================================
+GROUP MESSAGE CONVERSATIONS
+====================================================
+*/
+
+function groupInboxConversations(
+    items = []
+) {
+
+    const grouped = [];
+
+    const conversations =
+        new Map();
+
+
+    items.forEach(
+        (item) => {
+
+            if (
+                item.record_type !==
+                "message"
+            ) {
+
+                grouped.push(
+                    item
+                );
+
+                return;
+            }
+
+
+            const conversationKey = [
+                item.business_id,
+                item.platform,
+                item.conversation_id ||
+                    item.sender_id ||
+                    item.record_id
+            ].join(":");
+
+
+            if (
+                conversations.has(
+                    conversationKey
+                )
+            ) {
+
+                const existing =
+                    conversations.get(
+                        conversationKey
+                    );
+
+
+                existing.conversation_count =
+                    Number(
+                        existing.conversation_count ||
+                        1
+                    ) + 1;
+
+
+                return;
+            }
+
+
+            item.conversation_count =
+                1;
+
+
+            conversations.set(
+                conversationKey,
+                item
+            );
+
+
+            grouped.push(
+                item
+            );
+
+        }
+    );
+
+
+    return grouped;
+
+}
+
+
+/*
+====================================================
 RENDER COMMENTS
 ====================================================
 */
@@ -329,6 +416,12 @@ function renderComments() {
 
     const visibleComments =
         getVisibleComments();
+
+
+    const visibleInboxItems =
+        groupInboxConversations(
+            visibleComments
+        );
 
     const title =
         activeStatus === "all"
@@ -346,7 +439,7 @@ function renderComments() {
                 id="visible-comment-count"
                 class="count-badge"
             >
-                ${visibleComments.length}
+                ${visibleInboxItems.length}
             </span>
 
         </div>
@@ -366,7 +459,7 @@ function renderComments() {
         return;
     }
 
-    if (!visibleComments.length) {
+    if (!visibleInboxItems.length) {
         commentList.innerHTML = `
             <div class="empty-state">
 
@@ -389,7 +482,7 @@ function renderComments() {
         return;
     }
 
-    visibleComments.forEach(
+    visibleInboxItems.forEach(
         (comment) => {
 
             const card =
@@ -424,9 +517,20 @@ function renderComments() {
 
             const listPlatformLabel =
                 comment.record_type === "message"
-                    ? comment.platform === "instagram"
-                        ? "Instagram Messenger"
-                        : "Facebook Messenger"
+                    ? `${
+                        comment.platform === "instagram"
+                            ? "Instagram Messenger"
+                            : "Facebook Messenger"
+                    }${
+                        Number(
+                            comment.conversation_count ||
+                            1
+                        ) > 1
+                            ? ` · ${
+                                comment.conversation_count
+                            } messages`
+                            : ""
+                    }`
                     : comment.platform === "facebook"
                         ? "Facebook Comment"
                         : formatPlatformName(
@@ -504,6 +608,50 @@ SELECT COMMENT
 ====================================================
 */
 
+function getMessageConversation(
+    message
+) {
+
+    if (
+        !message ||
+        message.record_type !== "message"
+    ) {
+        return [];
+    }
+
+
+    const conversationKey =
+        message.conversation_id ||
+        message.sender_id ||
+        message.record_id;
+
+
+    return comments
+        .filter(
+            (item) =>
+                item.record_type === "message"
+                &&
+                Number(item.business_id) ===
+                    Number(message.business_id)
+                &&
+                item.platform ===
+                    message.platform
+                &&
+                (
+                    item.conversation_id ||
+                    item.sender_id ||
+                    item.record_id
+                ) === conversationKey
+        )
+        .sort(
+            (first, second) =>
+                new Date(first.created_at) -
+                new Date(second.created_at)
+        );
+
+}
+
+
 function selectComment(commentId) {
     const comment =
         comments.find(
@@ -532,6 +680,93 @@ function selectComment(commentId) {
 RENDER COMMENT DETAILS
 ====================================================
 */
+
+function renderMessageConversation(
+    message
+) {
+
+    const thread =
+        getMessageConversation(
+            message
+        );
+
+
+    if (!thread.length) {
+        return "";
+    }
+
+
+    return `
+        <div class="detail-section">
+
+            <span class="detail-label">
+                Conversation
+            </span>
+
+            <div class="message-thread">
+
+                ${thread.map(
+                    (item) => {
+
+                        const customerName =
+                            item.author ||
+                            "Customer";
+
+                        const businessName =
+                            item.business_name ||
+                            "Master Control";
+
+                        return `
+                            <div class="message-thread-item customer-message">
+
+                                <strong>
+                                    ${escapeHtml(
+                                        customerName
+                                    )}
+                                </strong>
+
+                                <div class="detail-value">
+                                    ${escapeHtml(
+                                        item.content ||
+                                        ""
+                                    )}
+                                </div>
+
+                            </div>
+
+                            ${
+                                item.reply
+                                    ? `
+                                        <div class="message-thread-item business-message">
+
+                                            <strong>
+                                                ${escapeHtml(
+                                                    businessName
+                                                )}
+                                            </strong>
+
+                                            <div class="detail-value">
+                                                ${escapeHtml(
+                                                    item.reply
+                                                )}
+                                            </div>
+
+                                        </div>
+                                    `
+                                    : ""
+                            }
+                        `;
+
+                    }
+                ).join("")}
+
+            </div>
+
+        </div>
+    `;
+
+}
+
 
 function renderCommentDetails(comment) {
     if (!detailsPanel) {
@@ -649,22 +884,30 @@ function renderCommentDetails(comment) {
 
         </div>
 
-        <div class="detail-section">
+        ${
+            isMessage
+                ? renderMessageConversation(
+                    comment
+                )
+                : `
+                    <div class="detail-section">
 
-            <span class="detail-label">
-                ${escapeHtml(
-                    incomingLabel
-                )}
-            </span>
+                        <span class="detail-label">
+                            ${escapeHtml(
+                                incomingLabel
+                            )}
+                        </span>
 
-            <div class="detail-value">
-                ${escapeHtml(
-                    comment.content ||
-                    ""
-                )}
-            </div>
+                        <div class="detail-value">
+                            ${escapeHtml(
+                                comment.content ||
+                                ""
+                            )}
+                        </div>
 
-        </div>
+                    </div>
+                `
+        }
 
         <div class="detail-section">
 
